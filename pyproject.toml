@@ -1,0 +1,28 @@
+[project]
+name = "smoothness-moot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.5",
+    "polars>=1.32.2",
+    "raise-utils>=2.5.2",
+    "scikit-learn>=1.5.2",
+    "tqdm>=4.67.1",
+]
+
+[dependency-groups]
+dev = ["basedpyright>=1.31.1"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+reportMissingTypeStubs = false
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "S311",
+    "T201"
+]
