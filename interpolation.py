@@ -94,16 +94,14 @@ if __name__ == "__main__":
             a. The hard part here is you could be close to a line between two points, which is difficult to figure out.
     """
 
-    y = data.select(
-        pl.col(col) if col.endswith("-") else 1 - pl.col(col) for col in y_cols
-    )
+    y = data.select(pl.col(col) if col.endswith("-") else 1 - pl.col(col) for col in y_cols)
     y = y.map_rows(lambda row: math.sqrt(sum(val**2 for val in row)))
 
     N_INITIAL = 25
     chosen_idx = []
-    lines: list[tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, float, float]] = (
-        []
-    )  # x1, x2, d, y1, y2 (d = direction vector)
+    lines: list[
+        tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, float, float]
+    ] = []  # x1, x2, d, y1, y2 (d = direction vector)
 
     # This is 2 * N_INITIAL = 50 evaluations
     for _ in range(N_INITIAL):
@@ -119,3 +117,16 @@ if __name__ == "__main__":
         idx = random.randint(0, len(x))
 
         line_idx, proj, proj_value, dist = get_closest_line(lines, x[idx])
+
+        # Improve our estimate of that projected point: we base it off whether we're closer to the
+        # projecting point x[idx] or either endpoint of that line.
+        if min_line_dist := min(np.linalg.norm(proj - lines[line_idx][0]), np.linalg.norm(proj - lines[line_idx][1])):
+            # Estimated value
+            f_numerator = lines[line_idx][3] * np.linalg.norm(np.array(lines[line_idx][1] - proj)) + lines[line_idx][
+                4
+            ] * np.linalg.norm(
+                np.array(proj - lines[line_idx][0]),
+            )
+            proj_value = float(f_numerator / np.linalg.norm(np.array(lines[line_idx][1] - lines[line_idx][0])))
+
+        # Along this trajectory (from x[idx] to proj), check the gradient. If it's zero, we don't care.
