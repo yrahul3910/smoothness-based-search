@@ -26,17 +26,16 @@ def setup_matplotlib() -> bool:
         return True
 
 
-def create_surface_data(data: pl.DataFrame):
+def create_surface_data(data: pl.DataFrame, pca: bool = True):
     """Load and process data for surface plotting."""
     columns = data.columns
     x_cols = [col for col in columns if not col.endswith(("-", "+"))]
     y_cols = [col for col in columns if col.endswith(("-", "+"))]
 
-    # PCA transformation
-    x_pca = PCA(n_components=2).fit_transform(data.select(x_cols))
-    y = data.select(
-        pl.col(col) if col.endswith("-") else 1 - pl.col(col) for col in y_cols
-    )
+    x_pca = data.select(x_cols)
+    x_pca = x_pca if not pca else PCA(n_components=2).fit_transform(data.select(x_cols))
+
+    y = data.select(pl.col(col) if col.endswith("-") else 1 - pl.col(col) for col in y_cols)
     y = y.map_rows(lambda row: math.sqrt(sum(val**2 for val in row)))
 
     return x_pca, y.to_numpy().ravel()

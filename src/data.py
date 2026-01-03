@@ -5,7 +5,10 @@ from scipy.interpolate import griddata
 
 def load_data(file_path: str) -> pl.DataFrame:
     """Load data from a CSV file."""
-    return pl.read_csv(file_path)
+    df = pl.read_csv(file_path)
+    # Remove text columns by type
+    df = df.drop(df.select(pl.col(pl.Utf8)).columns)
+    return df
 
 
 def jitter_data_1d(
