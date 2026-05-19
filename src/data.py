@@ -6,8 +6,14 @@ from scipy.interpolate import griddata
 def load_data(file_path: str) -> pl.DataFrame:
     """Load data from a CSV file."""
     df = pl.read_csv(file_path)
-    # Remove text columns by type
-    df = df.drop(df.select(pl.col(pl.Utf8)).columns)
+    # Strip whitespace from column names (some CSVs use "col1, col2" with spaces)
+    df = df.rename({c: c.strip() for c in df.columns})
+    # Try to cast string columns to float; drop those that genuinely contain text
+    for col in df.select(pl.col(pl.Utf8)).columns:
+        try:
+            df = df.with_columns(pl.col(col).str.strip_chars().cast(pl.Float64))
+        except Exception:
+            df = df.drop(col)
     return df
 
 

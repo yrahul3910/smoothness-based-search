@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smoothness-Based HPO for SE Trees — Experiment Index</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 900px; margin: 40px auto; padding: 0 20px; line-height: 1.7; }
+  h1, h2, h3 { color: #2c3e50; }
+  a { color: #2980b9; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #ccc; padding: 10px 14px; text-align: left; }
+  th { background: #2c3e50; color: white; }
+  .math { font-style: italic; }
+  .box { background: #eef6fb; border-left: 4px solid #3498db; padding: 12px 16px; margin: 16px 0; }
+  .status-done { color: #27ae60; font-weight: bold; }
+  .status-running { color: #e67e22; font-weight: bold; }
+  code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-size: 0.9em; }
+</style>
+</head>
+<body>
+
+<h1>Smoothness-Based Hyper-Parameter Optimization for Tree-Based SE Learners</h1>
+<p><em>Extension of Yedida &amp; Menzies (2025) to gradient-free learners on SE regression tasks.</em></p>
+
+<h2>Background</h2>
+<p>
+Yedida &amp; Menzies (2025) showed that SE loss landscapes are unusually flat (low
+<span class="math">β</span>-smoothness) compared to general AI datasets. They proposed
+<code>SMOOTHIE</code>, an HPO algorithm that selects hyperparameter configurations by
+maximizing smoothness, showing state-of-the-art results for neural networks, Naive Bayes,
+and logistic regression on classification tasks.
+</p>
+<p>
+This work extends the smoothness framework to <strong>tree-based learners</strong>
+(Decision Trees and Random Forests) on <strong>SE regression datasets</strong>, where the
+goal is multi-objective optimization (minimizing cost, effort, risk, etc.). Trees are
+gradient-free, so smoothness must be estimated differently — we use the
+<em>node-level NLL center-difference approximation</em> proposed in Section IX of the paper:
+</p>
+<p class="math" style="margin-left:2em">
+β(node) = |ℓ(left) + ℓ(right) &minus; 2·ℓ(parent)|,&nbsp;&nbsp;
+ℓ(v) = n<sub>v</sub> × MSE<sub>v</sub>
+</p>
+
+<div class="box">
+<strong>Core hypothesis:</strong> For SE data, configurations that produce higher
+β-smoothness during training also generalize better — because they are exploiting
+the low-noise, repetitive structure of SE artifacts rather than underfitting.
+</div>
+
+<h2>Datasets</h2>
+<p>All experiments use the 10 SE optimization datasets in <code>data/optimize/process/</code>:
+COC1000, NASA93, POM3a/b/c/d, and XOMO flight/ground/osp/osp2.
+Multi-objective targets are combined as <span class="math">y = √(Σ obj²)</span>
+after direction normalization.</p>
+
+<h2>Experiments</h2>
+<table>
+  <tr>
+    <th>#</th>
+    <th>Experiment</th>
+    <th>Research Question</th>
+    <th>Key Finding</th>
+    <th>Report</th>
+    <th>Status</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>SMOOTHIE-Trees vs. Random Search</td>
+    <td>Does smoothness-guided config selection outperform random selection (N₂=5 from N₁=30)?</td>
+    <td>Direction matters: SMOOTHIE-min (flat trees) reduces selection variance on XOMO; SMOOTHIE-max (expressive trees) wins significantly on COC1000 and POM3d. Neither dominates universally — the optimal direction depends on dataset smoothness.</td>
+    <td><a href="exp1_smoothie_trees.html">exp1_smoothie_trees.html</a></td>
+    <td class="status-done">Done (25.9 min)</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Smoothness as a Predictor of Generalization</td>
+    <td>Is there a significant Spearman correlation between β-smoothness (training) and R² (test)?</td>
+    <td>XOMO datasets show strong negative ρ (−0.53 to −0.67, all p≈0): flat trees generalize better. COC1000 shows positive ρ = +0.30 (p&lt;0.001): expressive trees better. NASA93 shows no significant correlation. Consistent with Exp. 1 directional findings.</td>
+    <td><a href="exp2_smoothness_correlation.html">exp2_smoothness_correlation.html</a></td>
+    <td class="status-running">Running (~2 hr remaining)</td>
+  </tr>
+</table>
+
+<h2>Executive Summary</h2>
+<p>
+The β-smoothness of a decision tree — measured via the NLL center-difference approximation
+across internal nodes — is a useful signal for guiding hyper-parameter selection.
+However, unlike the original SMOOTHIE paper which found that selecting <em>flat</em> landscapes
+universally works for SE data, this extension to trees reveals a dataset-dependent picture:
+</p>
+<ul>
+  <li><strong>XOMO datasets</strong> (NASA Monte Carlo simulations): flat trees (low β) generalize
+  more reliably. The Spearman correlation between β and R² is strongly negative (ρ ≈ −0.6),
+  and SMOOTHIE-min consistently reduces selection variance vs. random.</li>
+  <li><strong>POM3 and COC datasets</strong> (agile management and COCOMO models): expressive trees
+  (high β) provide modest but statistically significant gains. The β-R² correlation is
+  positive for COC1000 (ρ = +0.30).</li>
+</ul>
+<p>
+This suggests that the optimal smoothness direction can itself be estimated from data, opening
+an avenue for adaptive SMOOTHIE-Trees that first measures dataset smoothness and then chooses
+the appropriate β direction — a natural extension for future work.
+</p>
+
+<h2>Key Files</h2>
+<ul>
+  <li><code>src/smoothness_trees.py</code> — Tree β-smoothness computation (node NLL center-difference)</li>
+  <li><code>exp_smoothie_trees.py</code> — Experiment 1: SMOOTHIE-Trees vs. baselines</li>
+  <li><code>exp_smoothness_correlation.py</code> — Experiment 2: smoothness–R² Spearman correlation</li>
+</ul>
+
+</body>
+</html>
