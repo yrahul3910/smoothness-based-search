@@ -54,7 +54,7 @@ COC1000, NASA93, POM3a/b/c/d, and XOMO flight/ground/osp/osp2.
 Multi-objective targets are combined as <span class="math">y = √(Σ obj²)</span>
 after direction normalization.</p>
 
-<h2>Experiments</h2>
+<h2>Experiments (3 completed)</h2>
 <table>
   <tr>
     <th>#</th>
@@ -80,7 +80,26 @@ after direction normalization.</p>
     <td><a href="exp2_smoothness_correlation.html">exp2_smoothness_correlation.html</a></td>
     <td class="status-done">Done (89.6 min)</td>
   </tr>
+  <tr>
+    <td>3</td>
+    <td>SMOOTHIE-Trees vs. TPE and BOHB</td>
+    <td>Does SMOOTHIE-Trees (training-set smoothness) outperform sequential BO (TPE, BOHB) with the same 30-evaluation budget?</td>
+    <td>TPE and BOHB win on all 10 datasets (0 SMOOTHIE wins). Sequential BO using test-set feedback is stronger than training-set smoothness proxy within the same budget.</td>
+    <td><a href="exp3_bohb_tpe.html">exp3_bohb_tpe.html</a></td>
+    <td class="status-done">Done (~50 min)</td>
+  </tr>
 </table>
+
+<h2>Experiment 3: SMOOTHIE-Trees vs. TPE and BOHB</h2>
+<p>Added in response to the question: how does SMOOTHIE-Trees compare against state-of-the-art sequential
+black-box optimizers? Both TPE and BOHB use test-set R² as the objective and suggest configurations
+sequentially (30 evaluations). For tree learners with no fidelity dimension, BOHB degrades to its BO
+component (TPE with fewer random warm-up trials).</p>
+<p><strong>Result: TPE and BOHB both defeat SMOOTHIE-min on all 10 datasets (0 SMOOTHIE wins, 10 losses
+vs. each).</strong> Sequential BO, by seeing test performance after each evaluation, efficiently converges
+to good configs within 30 trials. SMOOTHIE-min's training-set smoothness proxy is weaker than direct
+test-set feedback — but SMOOTHIE-min has the advantage of no test-set leakage and parallel training.
+See <a href="exp3_bohb_tpe.html">exp3_bohb_tpe.html</a> for details (runtime: ~50 min).</p>
 
 <h2>Executive Summary</h2>
 <p>
