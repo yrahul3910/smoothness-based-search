@@ -122,6 +122,17 @@ def smoothie_min(pool: list[tuple], data: Data) -> list[float]:
     return best
 
 
+def smoothie_max(pool: list[tuple], data: Data) -> list[float]:
+    """Pick N_SELECT most curved trees (highest β), evaluate, return best."""
+    top5 = sorted(pool, key=lambda x: x[1], reverse=True)[:N_SELECT]
+    best = [float("-inf")] * len(METRICS)
+    for model, _ in top5:
+        res = _eval(model, data)
+        if res[0] > best[0]:
+            best = res
+    return best
+
+
 def _make_optuna_objective(data: Data):
     """Black-box objective for optuna: train a DT, return test R²."""
     def objective(trial: optuna.Trial) -> float:
@@ -188,6 +199,7 @@ def one_repeat(data: Data) -> dict[str, list[float]]:
         "random_30": random_30(pool, data),
         "random_30_5": random_30_5(pool, data),
         "smoothie_min": smoothie_min(pool, data),
+        "smoothie_max": smoothie_max(pool, data),
         "tpe_30": tpe_30(data),
         "bohb_30": bohb_30(data),
     }
@@ -196,7 +208,7 @@ def one_repeat(data: Data) -> dict[str, list[float]]:
 def run_all() -> dict:
     files = list(itertools.chain.from_iterable(Path(d).rglob("*.csv") for d in DIRS))
     results: dict = defaultdict(lambda: defaultdict(list))
-    method_names = ["random_30", "random_30_5", "smoothie_min", "tpe_30", "bohb_30"]
+    method_names = ["random_30", "random_30_5", "smoothie_min", "smoothie_max", "tpe_30", "bohb_30"]
 
     for fpath in files:
         dataset_name = fpath.stem
@@ -238,48 +250,63 @@ def generate_report(results: dict, runtime: float) -> str:
     def fmt(vals: list) -> str:
         return f"{np.mean(vals):.3f} ± {np.std(vals):.3f}"
 
-    # Track wins/ties/losses vs. each baseline
-    wins_tpe = ties_tpe = losses_tpe = 0
-    wins_bohb = ties_bohb = losses_bohb = 0
+    # Track wins/ties/losses for each SMOOTHIE variant vs. each BO method
+    counters: dict[str, dict[str, int]] = {
+        s: {"tpe_win": 0, "tpe_tie": 0, "tpe_loss": 0, "bohb_win": 0, "bohb_tie": 0, "bohb_loss": 0}
+        for s in ("smoothie_min", "smoothie_max")
+    }
     rows_r2 = []
     rows_mse = []
+
+    def color(v: str) -> str:
+        return {"win": "#d4edda", "tie": "#fff3cd", "loss": "#f8d7da"}[v]
 
     for dataset, methods in sorted(results.items()):
         r2 = {m: [s[0] for s in v] for m, v in methods.items()}
         mse = {m: [s[1] for s in v] for m, v in methods.items()}
 
-        # Compare SMOOTHIE-min vs TPE
-        _, v_tpe = mann_whitney(r2["smoothie_min"], r2["tpe_30"])
-        color_tpe: str = {"win": "#d4edda", "tie": "#fff3cd", "loss": "#f8d7da"}[v_tpe]
-        if v_tpe == "win": wins_tpe += 1
-        elif v_tpe == "tie": ties_tpe += 1
-        else: losses_tpe += 1
+        cells = {}
+        for sm in ("smoothie_min", "smoothie_max"):
+            _, v_tpe = mann_whitney(r2[sm], r2["tpe_30"])
+            _, v_bohb = mann_whitney(r2[sm], r2["bohb_30"])
+            counters[sm][f"tpe_{v_tpe}"] += 1
+            counters[sm][f"bohb_{v_bohb}"] += 1
+            cells[sm] = (v_tpe, color(v_tpe), v_bohb, color(v_bohb))
 
-        # Compare SMOOTHIE-min vs BOHB
-        _, v_bohb = mann_whitney(r2["smoothie_min"], r2["bohb_30"])
-        color_bohb: str = {"win": "#d4edda", "tie": "#fff3cd", "loss": "#f8d7da"}[v_bohb]
-        if v_bohb == "win": wins_bohb += 1
-        elif v_bohb == "tie": ties_bohb += 1
-        else: losses_bohb += 1
-
+        sm, sm2 = "smoothie_min", "smoothie_max"
         rows_r2.append(f"""
         <tr>
           <td><b>{dataset}</b></td>
-          <td>{fmt(r2["smoothie_min"])}</td>
-          <td style="background:{color_tpe}">{fmt(r2["tpe_30"])} ({v_tpe})</td>
-          <td style="background:{color_bohb}">{fmt(r2["bohb_30"])} ({v_bohb})</td>
+          <td>{fmt(r2[sm])}</td>
+          <td>{fmt(r2[sm2])}</td>
+          <td style="background:{cells[sm][1]}">{fmt(r2["tpe_30"])} (min:{cells[sm][0]}, max:{cells[sm2][0]})</td>
+          <td style="background:{cells[sm][3]}">{fmt(r2["bohb_30"])} (min:{cells[sm][2]}, max:{cells[sm2][2]})</td>
           <td>{fmt(r2["random_30_5"])}</td>
           <td>{fmt(r2["random_30"])}</td>
         </tr>""")
         rows_mse.append(f"""
         <tr>
           <td><b>{dataset}</b></td>
-          <td>{fmt(mse["smoothie_min"])}</td>
+          <td>{fmt(mse[sm])}</td>
+          <td>{fmt(mse[sm2])}</td>
           <td>{fmt(mse["tpe_30"])}</td>
           <td>{fmt(mse["bohb_30"])}</td>
           <td>{fmt(mse["random_30_5"])}</td>
           <td>{fmt(mse["random_30"])}</td>
         </tr>""")
+
+    wins_min_tpe = counters["smoothie_min"]["tpe_win"]
+    ties_min_tpe = counters["smoothie_min"]["tpe_tie"]
+    losses_min_tpe = counters["smoothie_min"]["tpe_loss"]
+    wins_min_bohb = counters["smoothie_min"]["bohb_win"]
+    ties_min_bohb = counters["smoothie_min"]["bohb_tie"]
+    losses_min_bohb = counters["smoothie_min"]["bohb_loss"]
+    wins_max_tpe = counters["smoothie_max"]["tpe_win"]
+    ties_max_tpe = counters["smoothie_max"]["tpe_tie"]
+    losses_max_tpe = counters["smoothie_max"]["tpe_loss"]
+    wins_max_bohb = counters["smoothie_max"]["bohb_win"]
+    ties_max_bohb = counters["smoothie_max"]["bohb_tie"]
+    losses_max_bohb = counters["smoothie_max"]["bohb_loss"]
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -333,35 +360,36 @@ We implement BOHB as a TPE study with <span class="math">n_{{startup}} = 5</span
 
 <h3>2.1 Implementation Details</h3>
 <ul>
-  <li><strong>SMOOTHIE-min</strong>: Train {N_BUDGET} random DT configs, pick bottom {N_SELECT} by β (flattest).
-      Evaluate those {N_SELECT} on test; return best. (Matches Experiment 1.)</li>
-  <li><strong>TPE-30</strong>: Optuna TPESampler, {N_BUDGET} sequential evaluations, each on test.
-      n_startup_trials = 10 (standard default).</li>
-  <li><strong>BOHB-30</strong>: Optuna TPESampler with n_startup_trials = 5 (fewer random trials,
-      mimicking BOHB's earlier switch to BO). {N_BUDGET} sequential evaluations on test.</li>
-  <li><strong>Random-30-5</strong>: Train 30 random configs, pick 5 at random, evaluate those on test.
-      Fair baseline for constrained-budget methods.</li>
-  <li><strong>Random-30</strong>: Train 30 random configs, evaluate all 30 on test.
-      Upper bound for random search.</li>
+  <li><strong>SMOOTHIE-min</strong>: Train {N_BUDGET} random DT configs, pick bottom {N_SELECT} by β
+      (flattest trees). Evaluate those on test; return best.</li>
+  <li><strong>SMOOTHIE-max</strong>: Same pool, pick top {N_SELECT} by β (most curved trees).</li>
+  <li><strong>TPE-30</strong>: Optuna TPESampler, {N_BUDGET} sequential evaluations on test.
+      n_startup_trials = 10.</li>
+  <li><strong>BOHB-30</strong>: Optuna TPESampler with n_startup_trials = 5 (BOHB BO component).
+      {N_BUDGET} sequential evaluations on test.</li>
+  <li><strong>Random-30-5</strong>: Train 30, pick 5 at random, evaluate on test. Fair baseline.</li>
+  <li><strong>Random-30</strong>: Train 30, evaluate all 30 on test. Upper bound.</li>
 </ul>
 <p>
-All methods use the same budget of {N_BUDGET} function evaluations. For TPE and BOHB, the test
-performance is the objective (standard HPO benchmarking). Learner: Decision Tree. {N_REPEATS} repeats.
+All methods use the same budget of {N_BUDGET} function evaluations.
+Learner: Decision Tree. {N_REPEATS} repeats. Statistical test: Mann-Whitney U, α = 0.05.
 </p>
 
 <h2>3. Results</h2>
 
 <h3>3.1 R² Score (higher is better)</h3>
 <p>
-TPE/BOHB columns show: mean ± std (verdict vs. SMOOTHIE-min).
-Green = SMOOTHIE-min wins over that method, Yellow = tie, Red = SMOOTHIE-min loses.
+TPE/BOHB cells show: mean ± std. Verdict annotation: &ldquo;min:X, max:Y&rdquo; = SMOOTHIE-min verdict,
+SMOOTHIE-max verdict vs. that BO method. Cell color reflects SMOOTHIE-min verdict.
+Green = SMOOTHIE wins, Yellow = tie, Red = SMOOTHIE loses.
 </p>
 <table>
   <tr>
     <th>Dataset</th>
-    <th>SMOOTHIE-min</th>
-    <th>TPE-30</th>
-    <th>BOHB-30</th>
+    <th>SMOOTHIE-min (↓β)</th>
+    <th>SMOOTHIE-max (↑β)</th>
+    <th>TPE-30 (verdict: min, max)</th>
+    <th>BOHB-30 (verdict: min, max)</th>
     <th>Random-30-5</th>
     <th>Random-30 (UB)</th>
   </tr>
@@ -369,8 +397,10 @@ Green = SMOOTHIE-min wins over that method, Yellow = tie, Red = SMOOTHIE-min los
 </table>
 
 <div class="result-box">
-<strong>Summary (SMOOTHIE-min vs. TPE): {wins_tpe} win(s), {ties_tpe} tie(s), {losses_tpe} loss(es).</strong><br/>
-<strong>Summary (SMOOTHIE-min vs. BOHB): {wins_bohb} win(s), {ties_bohb} tie(s), {losses_bohb} loss(es).</strong>
+<strong>SMOOTHIE-min vs. TPE:</strong> {wins_min_tpe} win(s), {ties_min_tpe} tie(s), {losses_min_tpe} loss(es).<br/>
+<strong>SMOOTHIE-min vs. BOHB:</strong> {wins_min_bohb} win(s), {ties_min_bohb} tie(s), {losses_min_bohb} loss(es).<br/>
+<strong>SMOOTHIE-max vs. TPE:</strong> {wins_max_tpe} win(s), {ties_max_tpe} tie(s), {losses_max_tpe} loss(es).<br/>
+<strong>SMOOTHIE-max vs. BOHB:</strong> {wins_max_bohb} win(s), {ties_max_bohb} tie(s), {losses_max_bohb} loss(es).
 </div>
 
 <h3>3.2 Mean Squared Error (lower is better)</h3>
@@ -378,6 +408,7 @@ Green = SMOOTHIE-min wins over that method, Yellow = tie, Red = SMOOTHIE-min los
   <tr>
     <th>Dataset</th>
     <th>SMOOTHIE-min</th>
+    <th>SMOOTHIE-max</th>
     <th>TPE-30</th>
     <th>BOHB-30</th>
     <th>Random-30-5</th>
@@ -388,24 +419,19 @@ Green = SMOOTHIE-min wins over that method, Yellow = tie, Red = SMOOTHIE-min los
 
 <h2>4. Discussion</h2>
 <p>
-TPE and BOHB are <em>sequential</em> optimizers: they evaluate each config one at a time,
-update a surrogate model, and suggest the next config based on the model. This means they
-can in principle direct search to more promising regions given sufficient evaluations.
+TPE and BOHB are <em>sequential</em> optimizers that evaluate each config one at a time,
+update a surrogate model, and suggest the next config based on test-set feedback.
+SMOOTHIE variants, by contrast, are <em>parallel and training-set-only</em>: they train all
+{N_BUDGET} configs simultaneously and select {N_SELECT} by β without seeing test performance.
 </p>
 <p>
-SMOOTHIE-min, by contrast, is <em>parallel and training-set-only</em>: it trains all {N_BUDGET}
-configs simultaneously (independently), then selects {N_SELECT} by β without using the test set.
-The key advantages of SMOOTHIE-min are:
-</p>
+Key advantages of SMOOTHIE over sequential BO:
 <ul>
-  <li><strong>No test-set leakage</strong>: TPE and BOHB see test performance as the objective
-      and can overfit to the test set, especially with few repeats.</li>
-  <li><strong>Speed</strong>: {N_BUDGET} parallel training jobs vs. strictly sequential evaluations.</li>
-  <li><strong>No surrogate overhead</strong>: SMOOTHIE-min uses a cheap tree-internal statistic.</li>
+  <li><strong>No test-set leakage</strong>: TPE/BOHB treat test R² as the objective and can overfit.</li>
+  <li><strong>Parallelizable</strong>: All {N_BUDGET} configs train independently vs. strictly sequential.</li>
+  <li><strong>No surrogate overhead</strong>: β is a cheap tree-internal statistic.</li>
 </ul>
-<p>
-The results show how much of TPE/BOHB's advantage (from sequential adaptive search) is offset
-by SMOOTHIE's benefit (no test leakage + parallel exploration).
+Whether SMOOTHIE-min or SMOOTHIE-max is preferred depends on the dataset (see Experiments 1 and 2).
 </p>
 
 <h2>5. Conclusion</h2>

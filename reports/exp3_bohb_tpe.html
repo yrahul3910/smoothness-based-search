@@ -19,7 +19,7 @@
 <body>
 
 <h1>Experiment 3: SMOOTHIE-Trees vs. TPE and BOHB</h1>
-<p><em>Date: 2026-05-19 &nbsp;|&nbsp; Runtime: 74.1 min</em></p>
+<p><em>Date: 2026-05-19 &nbsp;|&nbsp; Runtime: 74.0 min</em></p>
 
 <h2>1. Motivation</h2>
 <p>
@@ -50,124 +50,137 @@ We implement BOHB as a TPE study with <span class="math">n_{startup} = 5</span>
 
 <h3>2.1 Implementation Details</h3>
 <ul>
-  <li><strong>SMOOTHIE-min</strong>: Train 30 random DT configs, pick bottom 5 by β (flattest).
-      Evaluate those 5 on test; return best. (Matches Experiment 1.)</li>
-  <li><strong>TPE-30</strong>: Optuna TPESampler, 30 sequential evaluations, each on test.
-      n_startup_trials = 10 (standard default).</li>
-  <li><strong>BOHB-30</strong>: Optuna TPESampler with n_startup_trials = 5 (fewer random trials,
-      mimicking BOHB's earlier switch to BO). 30 sequential evaluations on test.</li>
-  <li><strong>Random-30-5</strong>: Train 30 random configs, pick 5 at random, evaluate those on test.
-      Fair baseline for constrained-budget methods.</li>
-  <li><strong>Random-30</strong>: Train 30 random configs, evaluate all 30 on test.
-      Upper bound for random search.</li>
+  <li><strong>SMOOTHIE-min</strong>: Train 30 random DT configs, pick bottom 5 by β
+      (flattest trees). Evaluate those on test; return best.</li>
+  <li><strong>SMOOTHIE-max</strong>: Same pool, pick top 5 by β (most curved trees).</li>
+  <li><strong>TPE-30</strong>: Optuna TPESampler, 30 sequential evaluations on test.
+      n_startup_trials = 10.</li>
+  <li><strong>BOHB-30</strong>: Optuna TPESampler with n_startup_trials = 5 (BOHB BO component).
+      30 sequential evaluations on test.</li>
+  <li><strong>Random-30-5</strong>: Train 30, pick 5 at random, evaluate on test. Fair baseline.</li>
+  <li><strong>Random-30</strong>: Train 30, evaluate all 30 on test. Upper bound.</li>
 </ul>
 <p>
-All methods use the same budget of 30 function evaluations. For TPE and BOHB, the test
-performance is the objective (standard HPO benchmarking). Learner: Decision Tree. 10 repeats.
+All methods use the same budget of 30 function evaluations.
+Learner: Decision Tree. 10 repeats. Statistical test: Mann-Whitney U, α = 0.05.
 </p>
 
 <h2>3. Results</h2>
 
 <h3>3.1 R² Score (higher is better)</h3>
 <p>
-TPE/BOHB columns show: mean ± std (verdict vs. SMOOTHIE-min).
-Green = SMOOTHIE-min wins over that method, Yellow = tie, Red = SMOOTHIE-min loses.
+TPE/BOHB cells show: mean ± std. Verdict annotation: &ldquo;min:X, max:Y&rdquo; = SMOOTHIE-min verdict,
+SMOOTHIE-max verdict vs. that BO method. Cell color reflects SMOOTHIE-min verdict.
+Green = SMOOTHIE wins, Yellow = tie, Red = SMOOTHIE loses.
 </p>
 <table>
   <tr>
     <th>Dataset</th>
-    <th>SMOOTHIE-min</th>
-    <th>TPE-30</th>
-    <th>BOHB-30</th>
+    <th>SMOOTHIE-min (↓β)</th>
+    <th>SMOOTHIE-max (↑β)</th>
+    <th>TPE-30 (verdict: min, max)</th>
+    <th>BOHB-30 (verdict: min, max)</th>
     <th>Random-30-5</th>
     <th>Random-30 (UB)</th>
   </tr>
   
         <tr>
           <td><b>coc1000</b></td>
-          <td>-0.345 ± 0.098</td>
-          <td style="background:#f8d7da">0.002 ± 0.025 (loss)</td>
-          <td style="background:#f8d7da">-0.029 ± 0.030 (loss)</td>
-          <td>-0.042 ± 0.036</td>
-          <td>-0.000 ± 0.014</td>
+          <td>-0.281 ± 0.080</td>
+          <td>-0.005 ± 0.012</td>
+          <td style="background:#f8d7da">-0.015 ± 0.025 (min:loss, max:tie)</td>
+          <td style="background:#f8d7da">-0.007 ± 0.022 (min:loss, max:tie)</td>
+          <td>-0.040 ± 0.041</td>
+          <td>0.001 ± 0.013</td>
         </tr>
         <tr>
           <td><b>nasa93dem</b></td>
-          <td>0.780 ± 0.100</td>
-          <td style="background:#f8d7da">0.722 ± 0.354 (loss)</td>
-          <td style="background:#f8d7da">0.785 ± 0.129 (loss)</td>
-          <td>0.799 ± 0.055</td>
-          <td>0.839 ± 0.004</td>
+          <td>0.805 ± 0.050</td>
+          <td>0.791 ± 0.052</td>
+          <td style="background:#f8d7da">0.705 ± 0.253 (min:loss, max:loss)</td>
+          <td style="background:#f8d7da">0.618 ± 0.574 (min:loss, max:loss)</td>
+          <td>0.801 ± 0.052</td>
+          <td>0.842 ± 0.006</td>
         </tr>
         <tr>
           <td><b>pom3a</b></td>
-          <td>0.054 ± 0.071</td>
-          <td style="background:#f8d7da">0.226 ± 0.007 (loss)</td>
-          <td style="background:#f8d7da">0.227 ± 0.012 (loss)</td>
-          <td>0.195 ± 0.024</td>
-          <td>0.229 ± 0.008</td>
+          <td>0.093 ± 0.026</td>
+          <td>0.198 ± 0.013</td>
+          <td style="background:#f8d7da">0.228 ± 0.004 (min:loss, max:loss)</td>
+          <td style="background:#f8d7da">0.228 ± 0.009 (min:loss, max:loss)</td>
+          <td>0.187 ± 0.056</td>
+          <td>0.221 ± 0.011</td>
         </tr>
         <tr>
           <td><b>pom3b</b></td>
-          <td>0.036 ± 0.022</td>
-          <td style="background:#f8d7da">0.206 ± 0.015 (loss)</td>
-          <td style="background:#f8d7da">0.207 ± 0.024 (loss)</td>
-          <td>0.174 ± 0.044</td>
-          <td>0.214 ± 0.006</td>
+          <td>0.068 ± 0.067</td>
+          <td>0.192 ± 0.010</td>
+          <td style="background:#f8d7da">0.199 ± 0.030 (min:loss, max:loss)</td>
+          <td style="background:#f8d7da">0.206 ± 0.021 (min:loss, max:loss)</td>
+          <td>0.190 ± 0.019</td>
+          <td>0.215 ± 0.003</td>
         </tr>
         <tr>
           <td><b>pom3c</b></td>
-          <td>0.034 ± 0.028</td>
-          <td style="background:#f8d7da">0.202 ± 0.013 (loss)</td>
-          <td style="background:#f8d7da">0.193 ± 0.020 (loss)</td>
-          <td>0.178 ± 0.019</td>
-          <td>0.197 ± 0.012</td>
+          <td>0.045 ± 0.042</td>
+          <td>0.169 ± 0.015</td>
+          <td style="background:#f8d7da">0.203 ± 0.010 (min:loss, max:loss)</td>
+          <td style="background:#f8d7da">0.203 ± 0.012 (min:loss, max:loss)</td>
+          <td>0.182 ± 0.016</td>
+          <td>0.195 ± 0.013</td>
         </tr>
         <tr>
           <td><b>pom3d</b></td>
-          <td>-0.176 ± 0.127</td>
-          <td style="background:#f8d7da">0.105 ± 0.096 (loss)</td>
-          <td style="background:#f8d7da">0.054 ± 0.080 (loss)</td>
-          <td>0.097 ± 0.070</td>
-          <td>0.165 ± 0.027</td>
+          <td>-0.158 ± 0.127</td>
+          <td>0.124 ± 0.055</td>
+          <td style="background:#f8d7da">0.104 ± 0.058 (min:loss, max:tie)</td>
+          <td style="background:#f8d7da">0.053 ± 0.068 (min:loss, max:win)</td>
+          <td>0.084 ± 0.053</td>
+          <td>0.150 ± 0.031</td>
         </tr>
         <tr>
           <td><b>xomo_flight</b></td>
-          <td>0.688 ± 0.030</td>
-          <td style="background:#f8d7da">0.722 ± 0.003 (loss)</td>
-          <td style="background:#f8d7da">0.721 ± 0.003 (loss)</td>
-          <td>0.681 ± 0.048</td>
-          <td>0.720 ± 0.004</td>
+          <td>0.680 ± 0.034</td>
+          <td>0.613 ± 0.135</td>
+          <td style="background:#f8d7da">0.721 ± 0.003 (min:loss, max:loss)</td>
+          <td style="background:#f8d7da">0.723 ± 0.001 (min:loss, max:loss)</td>
+          <td>0.683 ± 0.045</td>
+          <td>0.716 ± 0.005</td>
         </tr>
         <tr>
           <td><b>xomo_ground</b></td>
-          <td>0.599 ± 0.019</td>
-          <td style="background:#f8d7da">0.627 ± 0.006 (loss)</td>
-          <td style="background:#f8d7da">0.630 ± 0.004 (loss)</td>
-          <td>0.584 ± 0.054</td>
-          <td>0.627 ± 0.005</td>
+          <td>0.582 ± 0.027</td>
+          <td>0.499 ± 0.068</td>
+          <td style="background:#f8d7da">0.629 ± 0.009 (min:loss, max:loss)</td>
+          <td style="background:#f8d7da">0.623 ± 0.015 (min:loss, max:loss)</td>
+          <td>0.560 ± 0.074</td>
+          <td>0.616 ± 0.020</td>
         </tr>
         <tr>
           <td><b>xomo_osp</b></td>
-          <td>0.644 ± 0.061</td>
-          <td style="background:#f8d7da">0.680 ± 0.003 (loss)</td>
-          <td style="background:#f8d7da">0.682 ± 0.004 (loss)</td>
-          <td>0.619 ± 0.080</td>
-          <td>0.677 ± 0.005</td>
+          <td>0.663 ± 0.016</td>
+          <td>0.559 ± 0.064</td>
+          <td style="background:#f8d7da">0.682 ± 0.006 (min:loss, max:loss)</td>
+          <td style="background:#f8d7da">0.679 ± 0.006 (min:loss, max:loss)</td>
+          <td>0.632 ± 0.046</td>
+          <td>0.680 ± 0.004</td>
         </tr>
         <tr>
           <td><b>xomo_osp2</b></td>
-          <td>0.710 ± 0.022</td>
-          <td style="background:#f8d7da">0.748 ± 0.005 (loss)</td>
-          <td style="background:#f8d7da">0.746 ± 0.007 (loss)</td>
-          <td>0.730 ± 0.018</td>
-          <td>0.743 ± 0.006</td>
+          <td>0.688 ± 0.039</td>
+          <td>0.670 ± 0.051</td>
+          <td style="background:#f8d7da">0.746 ± 0.008 (min:loss, max:loss)</td>
+          <td style="background:#f8d7da">0.750 ± 0.002 (min:loss, max:loss)</td>
+          <td>0.725 ± 0.028</td>
+          <td>0.744 ± 0.007</td>
         </tr>
 </table>
 
 <div class="result-box">
-<strong>Summary (SMOOTHIE-min vs. TPE): 0 win(s), 0 tie(s), 10 loss(es).</strong><br/>
-<strong>Summary (SMOOTHIE-min vs. BOHB): 0 win(s), 0 tie(s), 10 loss(es).</strong>
+<strong>SMOOTHIE-min vs. TPE:</strong> 0 win(s), 0 tie(s), 10 loss(es).<br/>
+<strong>SMOOTHIE-min vs. BOHB:</strong> 0 win(s), 0 tie(s), 10 loss(es).<br/>
+<strong>SMOOTHIE-max vs. TPE:</strong> 0 win(s), 2 tie(s), 8 loss(es).<br/>
+<strong>SMOOTHIE-max vs. BOHB:</strong> 1 win(s), 1 tie(s), 8 loss(es).
 </div>
 
 <h3>3.2 Mean Squared Error (lower is better)</h3>
@@ -175,6 +188,7 @@ Green = SMOOTHIE-min wins over that method, Yellow = tie, Red = SMOOTHIE-min los
   <tr>
     <th>Dataset</th>
     <th>SMOOTHIE-min</th>
+    <th>SMOOTHIE-max</th>
     <th>TPE-30</th>
     <th>BOHB-30</th>
     <th>Random-30-5</th>
@@ -183,39 +197,44 @@ Green = SMOOTHIE-min wins over that method, Yellow = tie, Red = SMOOTHIE-min los
   
         <tr>
           <td><b>coc1000</b></td>
-          <td>0.097 ± 0.007</td>
-          <td>0.072 ± 0.002</td>
-          <td>0.074 ± 0.002</td>
+          <td>0.093 ± 0.006</td>
+          <td>0.073 ± 0.001</td>
+          <td>0.073 ± 0.002</td>
+          <td>0.073 ± 0.002</td>
           <td>0.075 ± 0.003</td>
           <td>0.072 ± 0.001</td>
         </tr>
         <tr>
           <td><b>nasa93dem</b></td>
           <td>0.001 ± 0.000</td>
-          <td>0.001 ± 0.002</td>
+          <td>0.001 ± 0.000</td>
           <td>0.001 ± 0.001</td>
+          <td>0.002 ± 0.002</td>
           <td>0.001 ± 0.000</td>
           <td>0.001 ± 0.000</td>
         </tr>
         <tr>
           <td><b>pom3a</b></td>
-          <td>0.033 ± 0.002</td>
+          <td>0.031 ± 0.001</td>
+          <td>0.028 ± 0.000</td>
           <td>0.027 ± 0.000</td>
           <td>0.027 ± 0.000</td>
-          <td>0.028 ± 0.001</td>
+          <td>0.028 ± 0.002</td>
           <td>0.027 ± 0.000</td>
         </tr>
         <tr>
           <td><b>pom3b</b></td>
-          <td>0.035 ± 0.001</td>
+          <td>0.033 ± 0.002</td>
+          <td>0.029 ± 0.000</td>
+          <td>0.029 ± 0.001</td>
           <td>0.028 ± 0.001</td>
-          <td>0.028 ± 0.001</td>
-          <td>0.030 ± 0.002</td>
+          <td>0.029 ± 0.001</td>
           <td>0.028 ± 0.000</td>
         </tr>
         <tr>
           <td><b>pom3c</b></td>
           <td>0.024 ± 0.001</td>
+          <td>0.021 ± 0.000</td>
           <td>0.020 ± 0.000</td>
           <td>0.020 ± 0.000</td>
           <td>0.021 ± 0.000</td>
@@ -223,15 +242,17 @@ Green = SMOOTHIE-min wins over that method, Yellow = tie, Red = SMOOTHIE-min los
         </tr>
         <tr>
           <td><b>pom3d</b></td>
-          <td>0.078 ± 0.008</td>
-          <td>0.059 ± 0.006</td>
+          <td>0.077 ± 0.008</td>
+          <td>0.058 ± 0.004</td>
+          <td>0.059 ± 0.004</td>
           <td>0.063 ± 0.005</td>
-          <td>0.060 ± 0.005</td>
-          <td>0.055 ± 0.002</td>
+          <td>0.061 ± 0.003</td>
+          <td>0.056 ± 0.002</td>
         </tr>
         <tr>
           <td><b>xomo_flight</b></td>
-          <td>0.014 ± 0.001</td>
+          <td>0.015 ± 0.002</td>
+          <td>0.018 ± 0.006</td>
           <td>0.013 ± 0.000</td>
           <td>0.013 ± 0.000</td>
           <td>0.014 ± 0.002</td>
@@ -239,50 +260,48 @@ Green = SMOOTHIE-min wins over that method, Yellow = tie, Red = SMOOTHIE-min los
         </tr>
         <tr>
           <td><b>xomo_ground</b></td>
-          <td>0.014 ± 0.001</td>
+          <td>0.015 ± 0.001</td>
+          <td>0.017 ± 0.002</td>
           <td>0.013 ± 0.000</td>
-          <td>0.013 ± 0.000</td>
-          <td>0.014 ± 0.002</td>
-          <td>0.013 ± 0.000</td>
+          <td>0.013 ± 0.001</td>
+          <td>0.015 ± 0.003</td>
+          <td>0.013 ± 0.001</td>
         </tr>
         <tr>
           <td><b>xomo_osp</b></td>
-          <td>0.011 ± 0.002</td>
+          <td>0.010 ± 0.000</td>
+          <td>0.013 ± 0.002</td>
           <td>0.010 ± 0.000</td>
           <td>0.010 ± 0.000</td>
-          <td>0.012 ± 0.002</td>
+          <td>0.011 ± 0.001</td>
           <td>0.010 ± 0.000</td>
         </tr>
         <tr>
           <td><b>xomo_osp2</b></td>
-          <td>0.017 ± 0.001</td>
+          <td>0.018 ± 0.002</td>
+          <td>0.019 ± 0.003</td>
           <td>0.014 ± 0.000</td>
           <td>0.014 ± 0.000</td>
-          <td>0.015 ± 0.001</td>
+          <td>0.016 ± 0.002</td>
           <td>0.015 ± 0.000</td>
         </tr>
 </table>
 
 <h2>4. Discussion</h2>
 <p>
-TPE and BOHB are <em>sequential</em> optimizers: they evaluate each config one at a time,
-update a surrogate model, and suggest the next config based on the model. This means they
-can in principle direct search to more promising regions given sufficient evaluations.
+TPE and BOHB are <em>sequential</em> optimizers that evaluate each config one at a time,
+update a surrogate model, and suggest the next config based on test-set feedback.
+SMOOTHIE variants, by contrast, are <em>parallel and training-set-only</em>: they train all
+30 configs simultaneously and select 5 by β without seeing test performance.
 </p>
 <p>
-SMOOTHIE-min, by contrast, is <em>parallel and training-set-only</em>: it trains all 30
-configs simultaneously (independently), then selects 5 by β without using the test set.
-The key advantages of SMOOTHIE-min are:
-</p>
+Key advantages of SMOOTHIE over sequential BO:
 <ul>
-  <li><strong>No test-set leakage</strong>: TPE and BOHB see test performance as the objective
-      and can overfit to the test set, especially with few repeats.</li>
-  <li><strong>Speed</strong>: 30 parallel training jobs vs. strictly sequential evaluations.</li>
-  <li><strong>No surrogate overhead</strong>: SMOOTHIE-min uses a cheap tree-internal statistic.</li>
+  <li><strong>No test-set leakage</strong>: TPE/BOHB treat test R² as the objective and can overfit.</li>
+  <li><strong>Parallelizable</strong>: All 30 configs train independently vs. strictly sequential.</li>
+  <li><strong>No surrogate overhead</strong>: β is a cheap tree-internal statistic.</li>
 </ul>
-<p>
-The results show how much of TPE/BOHB's advantage (from sequential adaptive search) is offset
-by SMOOTHIE's benefit (no test leakage + parallel exploration).
+Whether SMOOTHIE-min or SMOOTHIE-max is preferred depends on the dataset (see Experiments 1 and 2).
 </p>
 
 <h2>5. Conclusion</h2>
