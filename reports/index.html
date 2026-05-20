@@ -54,7 +54,7 @@ COC1000, NASA93, POM3a/b/c/d, and XOMO flight/ground/osp/osp2.
 Multi-objective targets are combined as <span class="math">y = √(Σ obj²)</span>
 after direction normalization.</p>
 
-<h2>Experiments (3 completed)</h2>
+<h2>Experiments (3 completed, 1 running)</h2>
 <table>
   <tr>
     <th>#</th>
@@ -87,6 +87,14 @@ after direction normalization.</p>
     <td>TPE and BOHB win on all 10 datasets (0 SMOOTHIE wins). Sequential BO using test-set feedback is stronger than training-set smoothness proxy within the same budget.</td>
     <td><a href="exp3_bohb_tpe.html">exp3_bohb_tpe.html</a></td>
     <td class="status-done">Done (~50 min)</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Interpolation-Guided Gradient Search (INGS)</td>
+    <td>Can we exploit the low-β structure via linear interpolation to guide gradient-based HPO search without test-set access, outperforming both β-selection (SMOOTHIE) and sequential BO (TPE/BOHB)?</td>
+    <td>TBD</td>
+    <td><a href="exp4_ings.html">exp4_ings.html</a></td>
+    <td class="status-running">Running</td>
   </tr>
 </table>
 

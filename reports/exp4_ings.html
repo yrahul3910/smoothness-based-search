@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Experiment 4: INGS — Interpolation-Guided Gradient Search</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 1050px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+  h1, h2, h3 { color: #2c3e50; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 0.91em; }
+  th, td { border: 1px solid #ccc; padding: 7px 10px; text-align: left; }
+  th { background: #2c3e50; color: white; }
+  code { background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
+  .math { font-style: italic; }
+  .box { background: #eef6fb; border-left: 4px solid #3498db; padding: 12px 16px; margin: 16px 0; }
+  .result-box { background: #eafaf1; border-left: 4px solid #27ae60; padding: 12px 16px; margin: 16px 0; }
+  .warn-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; }
+  pre { background: #f8f8f8; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 0.88em; }
+</style>
+</head>
+<body>
+
+<h1>Experiment 4: Interpolation-Guided Gradient Search (INGS)</h1>
+<p><em>Date: 2026-05-19 &nbsp;|&nbsp; Runtime: 109.2 min</em></p>
+
+<h2>1. Motivation</h2>
+<p>
+Experiments 1–3 established that SE HPO landscapes are low-β (flat), making
+β-smoothness a useful but weaker signal than direct test feedback (TPE wins on all 10 datasets).
+This experiment asks: <strong>can we exploit the low-β structure more directly, by using linear
+interpolation over the HPO landscape to estimate gradients and navigate toward performance peaks
+without touching the test set?</strong>
+</p>
+<p>
+The key mathematical insight is that for β-smooth functions, the interpolation error is
+upper-bounded by a term proportional to β. Because SE data has low β, a linear interpolant
+is a trustworthy surrogate. Furthermore, the Hessian at any point can be read off from the
+interpolation residual: <span class="math">∇²f(h) ≈ −2r(h)/δ²</span>, where r(h) = f(h) − L(h).
+A point above its linear interpolant has negative Hessian, i.e., is a local maximum.
+</p>
+
+<h2>2. Algorithm</h2>
+
+<div class="box">
+<strong>Anti-Laplacian scoring:</strong>
+Combining the gradient estimate (high RBF prediction) and the Hessian correction (local maximum
+indicator), the score for a candidate h is:
+<pre>
+score(h) = 2·RBF(h) − mean(RBF(neighbors of h))
+</pre>
+Derivation: score = RBF(h) − (δ²/2)·∇²RBF(h)
+                  = RBF(h) − [RBF(h+δ) + RBF(h−δ) − 2·RBF(h)] / 2
+                  = 2·RBF(h) − mean_neighbor_RBF<br/>
+When score > RBF(h): the surrogate predicts h is a peak above its neighbors → evaluate it.
+When the score range is flat (< ε): explore randomly to escape the plateau.
+</div>
+
+<h3>2.1 INGS Step-by-Step</h3>
+<ol>
+  <li><strong>Phase 0 — Initialization (10 configs):</strong> Sample uniformly at random.
+      Proxy = R² on a fixed 20% validation split of <em>training</em> data (no test leakage).</li>
+  <li><strong>Phase 1 — Iterative search (20 steps):</strong>
+    <ol type="a">
+      <li>Fit RBF interpolant (linear kernel) on observed (encoded config, val R²) pairs.</li>
+      <li>Sample 40 random candidate configs.</li>
+      <li>Compute anti-Laplacian score for each candidate.</li>
+      <li>If <code>max_score − min_score &lt; 0.001</code> (flat surrogate): explore randomly.
+          Otherwise: evaluate the highest-scoring candidate.</li>
+    </ol>
+  </li>
+  <li><strong>Return:</strong> Best config by val R²; retrain on full training data; evaluate on test.</li>
+</ol>
+
+<h3>2.2 Ablation — INGS-grad</h3>
+<p>Identical to INGS, but the score is <code>RBF(h)</code> only (no Hessian correction).
+This isolates the contribution of the anti-Laplacian term.</p>
+
+<h3>2.3 Key differences from prior methods</h3>
+<table>
+  <tr><th>Property</th><th>SMOOTHIE</th><th>TPE/BOHB</th><th>INGS</th></tr>
+  <tr><td>Proxy signal</td><td>β-smoothness (training)</td><td>R² (test)</td><td>R² (validation split of train)</td></tr>
+  <tr><td>Sequential?</td><td>No (parallel)</td><td>Yes</td><td>Yes</td></tr>
+  <tr><td>Surrogate model</td><td>None</td><td>Tree Parzen Estimator</td><td>RBF interpolant</td></tr>
+  <tr><td>Uses test set?</td><td>No</td><td>Yes</td><td>No</td></tr>
+  <tr><td>Hessian info</td><td>No</td><td>No</td><td>Yes (anti-Laplacian)</td></tr>
+</table>
+
+<h2>3. Results</h2>
+
+<h3>3.1 R² Score — All Methods (higher is better)</h3>
+<p>INGS and INGS-grad cells are colored by their verdict vs. TPE-30.
+Green = win, yellow = tie, red = loss.</p>
+<table>
+  <tr>
+    <th>Dataset</th>
+    <th>INGS</th>
+    <th>INGS-grad</th>
+    <th>TPE-30</th>
+    <th>BOHB-30</th>
+    <th>SMOOTHIE-min</th>
+    <th>SMOOTHIE-max</th>
+    <th>Random-30-5</th>
+    <th>Random-30 (UB)</th>
+  </tr>
+  
+        <tr>
+          <td><b>coc1000</b></td>
+          <td style="background:#fff3cd">-0.018 ± 0.033</td>
+          <td style="background:#fff3cd">-0.022 ± 0.043</td>
+          <td>-0.024 ± 0.019</td>
+          <td>-0.009 ± 0.024</td>
+          <td>-0.342 ± 0.123</td>
+          <td>-0.007 ± 0.021</td>
+          <td>-0.040 ± 0.067</td>
+          <td>0.014 ± 0.012</td>
+        </tr>
+        <tr>
+          <td><b>nasa93dem</b></td>
+          <td style="background:#f8d7da">0.550 ± 0.382</td>
+          <td style="background:#f8d7da">0.679 ± 0.252</td>
+          <td>0.798 ± 0.100</td>
+          <td>0.741 ± 0.193</td>
+          <td>0.766 ± 0.087</td>
+          <td>0.811 ± 0.049</td>
+          <td>0.823 ± 0.031</td>
+          <td>0.843 ± 0.019</td>
+        </tr>
+        <tr>
+          <td><b>pom3a</b></td>
+          <td style="background:#f8d7da">0.207 ± 0.021</td>
+          <td style="background:#f8d7da">0.209 ± 0.013</td>
+          <td>0.228 ± 0.010</td>
+          <td>0.223 ± 0.024</td>
+          <td>0.025 ± 0.053</td>
+          <td>0.171 ± 0.026</td>
+          <td>0.176 ± 0.039</td>
+          <td>0.223 ± 0.012</td>
+        </tr>
+        <tr>
+          <td><b>pom3b</b></td>
+          <td style="background:#f8d7da">0.201 ± 0.018</td>
+          <td style="background:#d4edda">0.213 ± 0.007</td>
+          <td>0.194 ± 0.031</td>
+          <td>0.208 ± 0.015</td>
+          <td>0.005 ± 0.057</td>
+          <td>0.190 ± 0.016</td>
+          <td>0.190 ± 0.028</td>
+          <td>0.210 ± 0.006</td>
+        </tr>
+        <tr>
+          <td><b>pom3c</b></td>
+          <td style="background:#f8d7da">0.184 ± 0.020</td>
+          <td style="background:#f8d7da">0.185 ± 0.023</td>
+          <td>0.206 ± 0.004</td>
+          <td>0.203 ± 0.010</td>
+          <td>0.044 ± 0.051</td>
+          <td>0.170 ± 0.015</td>
+          <td>0.180 ± 0.021</td>
+          <td>0.204 ± 0.008</td>
+        </tr>
+        <tr>
+          <td><b>pom3d</b></td>
+          <td style="background:#fff3cd">0.083 ± 0.044</td>
+          <td style="background:#fff3cd">0.059 ± 0.078</td>
+          <td>0.062 ± 0.102</td>
+          <td>0.050 ± 0.078</td>
+          <td>-0.166 ± 0.137</td>
+          <td>0.135 ± 0.061</td>
+          <td>0.039 ± 0.084</td>
+          <td>0.172 ± 0.036</td>
+        </tr>
+        <tr>
+          <td><b>xomo_flight</b></td>
+          <td style="background:#f8d7da">0.715 ± 0.003</td>
+          <td style="background:#f8d7da">0.719 ± 0.002</td>
+          <td>0.723 ± 0.002</td>
+          <td>0.721 ± 0.003</td>
+          <td>0.685 ± 0.026</td>
+          <td>0.559 ± 0.115</td>
+          <td>0.664 ± 0.069</td>
+          <td>0.719 ± 0.010</td>
+        </tr>
+        <tr>
+          <td><b>xomo_ground</b></td>
+          <td style="background:#f8d7da">0.618 ± 0.008</td>
+          <td style="background:#f8d7da">0.621 ± 0.008</td>
+          <td>0.624 ± 0.008</td>
+          <td>0.622 ± 0.014</td>
+          <td>0.579 ± 0.043</td>
+          <td>0.484 ± 0.083</td>
+          <td>0.569 ± 0.079</td>
+          <td>0.620 ± 0.008</td>
+        </tr>
+        <tr>
+          <td><b>xomo_osp</b></td>
+          <td style="background:#f8d7da">0.672 ± 0.009</td>
+          <td style="background:#fff3cd">0.652 ± 0.066</td>
+          <td>0.679 ± 0.005</td>
+          <td>0.680 ± 0.005</td>
+          <td>0.620 ± 0.077</td>
+          <td>0.521 ± 0.069</td>
+          <td>0.656 ± 0.028</td>
+          <td>0.680 ± 0.005</td>
+        </tr>
+        <tr>
+          <td><b>xomo_osp2</b></td>
+          <td style="background:#fff3cd">0.747 ± 0.007</td>
+          <td style="background:#fff3cd">0.743 ± 0.011</td>
+          <td>0.747 ± 0.004</td>
+          <td>0.745 ± 0.007</td>
+          <td>0.684 ± 0.057</td>
+          <td>0.667 ± 0.048</td>
+          <td>0.728 ± 0.020</td>
+          <td>0.741 ± 0.011</td>
+        </tr>
+</table>
+
+<div class="result-box">
+<strong>INGS vs. TPE-30:</strong> 0W / 3T / 7L &nbsp;|&nbsp;
+<strong>INGS vs. BOHB-30:</strong> 0W / 2T / 8L<br/>
+<strong>INGS vs. SMOOTHIE-min:</strong> 9W / 0T / 1L &nbsp;|&nbsp;
+<strong>INGS vs. Random-30-5:</strong> 3W / 5T / 2L<br/><br/>
+<strong>INGS-grad vs. TPE-30:</strong> 1W / 4T / 5L &nbsp;|&nbsp;
+<strong>INGS-grad vs. BOHB-30:</strong> 0W / 3T / 7L<br/>
+<strong>INGS-grad vs. SMOOTHIE-min:</strong> 8W / 1T / 1L &nbsp;|&nbsp;
+<strong>INGS-grad vs. Random-30-5:</strong> 4W / 5T / 1L
+</div>
+
+<h3>3.2 Ablation: INGS vs. INGS-grad (effect of Hessian correction)</h3>
+<table>
+  <tr>
+    <th>Dataset</th>
+    <th>INGS (anti-Laplacian)</th>
+    <th>INGS-grad (gradient only)</th>
+    <th>Verdict (INGS &gt; INGS-grad?)</th>
+  </tr>
+  
+        <tr>
+          <td><b>coc1000</b></td>
+          <td>-0.018 ± 0.033</td>
+          <td>-0.022 ± 0.043</td>
+          <td style="background:#f8d7da">loss</td>
+        </tr>
+        <tr>
+          <td><b>nasa93dem</b></td>
+          <td>0.550 ± 0.382</td>
+          <td>0.679 ± 0.252</td>
+          <td style="background:#fff3cd">tie</td>
+        </tr>
+        <tr>
+          <td><b>pom3a</b></td>
+          <td>0.207 ± 0.021</td>
+          <td>0.209 ± 0.013</td>
+          <td style="background:#fff3cd">tie</td>
+        </tr>
+        <tr>
+          <td><b>pom3b</b></td>
+          <td>0.201 ± 0.018</td>
+          <td>0.213 ± 0.007</td>
+          <td style="background:#f8d7da">loss</td>
+        </tr>
+        <tr>
+          <td><b>pom3c</b></td>
+          <td>0.184 ± 0.020</td>
+          <td>0.185 ± 0.023</td>
+          <td style="background:#f8d7da">loss</td>
+        </tr>
+        <tr>
+          <td><b>pom3d</b></td>
+          <td>0.083 ± 0.044</td>
+          <td>0.059 ± 0.078</td>
+          <td style="background:#fff3cd">tie</td>
+        </tr>
+        <tr>
+          <td><b>xomo_flight</b></td>
+          <td>0.715 ± 0.003</td>
+          <td>0.719 ± 0.002</td>
+          <td style="background:#f8d7da">loss</td>
+        </tr>
+        <tr>
+          <td><b>xomo_ground</b></td>
+          <td>0.618 ± 0.008</td>
+          <td>0.621 ± 0.008</td>
+          <td style="background:#f8d7da">loss</td>
+        </tr>
+        <tr>
+          <td><b>xomo_osp</b></td>
+          <td>0.672 ± 0.009</td>
+          <td>0.652 ± 0.066</td>
+          <td style="background:#f8d7da">loss</td>
+        </tr>
+        <tr>
+          <td><b>xomo_osp2</b></td>
+          <td>0.747 ± 0.007</td>
+          <td>0.743 ± 0.011</td>
+          <td style="background:#fff3cd">tie</td>
+        </tr>
+</table>
+
+<h2>4. Discussion</h2>
+
+<h3>4.1 INGS vs. TPE/BOHB</h3>
+<p>
+Both INGS and TPE see information sequentially and use a surrogate model, but their
+surrogates differ fundamentally. TPE builds a probabilistic model over the test-set
+objective, effectively treating HPO as test-set optimization. INGS builds a linear
+interpolant over the validation-set proxy, guided by the β-smoothness bound.
+</p>
+<p>
+The theoretical advantage of INGS over TPE: when the HPO landscape is genuinely β-smooth
+(low curvature), the linear interpolant is as accurate as a GP/TPE surrogate, while
+being computationally simpler and requiring no test-set access.
+</p>
+
+<h3>4.2 Ablation Interpretation</h3>
+<p>
+If INGS &gt; INGS-grad on a dataset, the Hessian correction helps — the landscape has
+meaningful curvature that the anti-Laplacian can exploit. If INGS-grad ≥ INGS, the landscape
+is smooth enough that pure gradient following is sufficient (the flat region escape fires more
+often and the Hessian correction adds noise).
+</p>
+
+<h3>4.3 Relationship to the β-interpolation bound</h3>
+<p>
+The proxy signal used by INGS (validation R²) is richer than β-smoothness (a training-only
+signal) but cheaper than sequential test-set feedback (which requires N sequential
+train+test cycles). INGS fits on the spectrum between SMOOTHIE and TPE: it sees
+held-out performance (validation), but from a held-out portion of training data,
+not the final test set. This is a principled middle ground for low-leakage HPO.
+</p>
+
+</body>
+</html>

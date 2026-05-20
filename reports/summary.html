@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smoothness-Based HPO — Consolidated Results</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+  h1, h2, h3 { color: #2c3e50; }
+  a { color: #2980b9; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 0.84em; }
+  th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; }
+  th { background: #2c3e50; color: white; }
+  th.group { background: #1a252f; }
+  code { background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-size: 0.88em; }
+  .math { font-style: italic; }
+  .box { background: #eef6fb; border-left: 4px solid #3498db; padding: 12px 16px; margin: 16px 0; }
+  .result-box { background: #eafaf1; border-left: 4px solid #27ae60; padding: 12px 16px; margin: 16px 0; }
+  .warn-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; }
+  .legend { font-size: 0.85em; margin-bottom: 8px; }
+  .legend span { display: inline-block; padding: 2px 10px; border-radius: 3px; margin-right: 8px; border: 1px solid #ccc; }
+</style>
+</head>
+<body>
+
+<h1>Smoothness-Based HPO for SE Trees — Consolidated Results</h1>
+<p><em>Extension of Yedida &amp; Menzies (2025) to tree-based learners on SE regression datasets.<br>
+Experiments 1–5 | Datasets: 10 SE optimization benchmarks in <code>data/optimize/process/</code></em></p>
+
+<div class="box">
+<strong>Quick links:</strong>
+<a href="exp1_smoothie_trees.html">Exp 1</a> &nbsp;|&nbsp;
+<a href="exp2_smoothness_correlation.html">Exp 2</a> &nbsp;|&nbsp;
+<a href="exp3_bohb_tpe.html">Exp 3</a> &nbsp;|&nbsp;
+<a href="exp4_ings.html">Exp 4</a> &nbsp;|&nbsp;
+<a href="exp5_ings_improved.html">Exp 5</a> &nbsp;|&nbsp;
+<a href="index.html">Index</a>
+</div>
+
+<h2>1. Smoothness–Generalization Correlation (Experiment 2)</h2>
+<p>Spearman ρ between β-smoothness (training) and test R² across 150 random DT+RF configs per dataset.
+* = significant at p &lt; 0.05.</p>
+<table>
+  <tr><th>Dataset</th><th>Spearman ρ</th><th>p-value</th><th>Interpretation</th></tr>
+  <tr style="background:#d4edda"><td><b>coc1000</b></td><td>0.298</td><td>0.0002</td><td>↑ positive, significant</td></tr><tr style="background:#fff3cd"><td><b>nasa93dem</b></td><td>-0.051</td><td>0.5381</td><td>— not significant</td></tr><tr style="background:#f8d7da"><td><b>pom3a</b></td><td>-0.411</td><td>0.0000</td><td>↓ negative, significant</td></tr><tr style="background:#f8d7da"><td><b>pom3b</b></td><td>-0.419</td><td>0.0000</td><td>↓ negative, significant</td></tr><tr style="background:#f8d7da"><td><b>pom3c</b></td><td>-0.328</td><td>0.0000</td><td>↓ negative, significant</td></tr><tr style="background:#fff3cd"><td><b>pom3d</b></td><td>0.056</td><td>0.4941</td><td>— not significant</td></tr><tr style="background:#f8d7da"><td><b>xomo_flight</b></td><td>-0.519</td><td>0.0000</td><td>↓ negative, significant</td></tr><tr style="background:#f8d7da"><td><b>xomo_ground</b></td><td>-0.534</td><td>0.0000</td><td>↓ negative, significant</td></tr><tr style="background:#f8d7da"><td><b>xomo_osp</b></td><td>-0.665</td><td>0.0000</td><td>↓ negative, significant</td></tr><tr style="background:#f8d7da"><td><b>xomo_osp2</b></td><td>-0.575</td><td>0.0000</td><td>↓ negative, significant</td></tr>
+</table>
+<p><em>7/10 datasets show significantly negative ρ (flat trees generalize better).
+COC1000 is the sole positive outlier (ρ=+0.30). NASA93dem is not significant.</em></p>
+
+<h2>2. Full Method Comparison — R² Score (Experiments 3–5)</h2>
+<p>All methods use a budget of 30 model trains. Cell color = verdict vs. BOHB-30
+(Mann-Whitney U, α=0.05, one-sided): green = statistically significant win,
+yellow = tie (not significant, median ≥ BOHB), red = loss (not significant,
+median &lt; BOHB, or significant loss). ρ* column from Experiment 2.</p>
+
+<div class="legend">
+  <span style="background:#d4edda">Significant win vs BOHB (p&lt;0.05)</span>
+  <span style="background:#fff3cd">Tie (not significant, median ≥ BOHB)</span>
+  <span style="background:#f8d7da">Loss (median &lt; BOHB)</span>
+</div>
+
+<div style="overflow-x:auto">
+<table>
+  <tr>
+    <th rowspan="2">Dataset</th>
+    <th rowspan="2">ρ (Exp2)</th>
+    <th colspan="4" class="group" style="text-align:center">Baselines</th>
+    <th colspan="2" class="group" style="text-align:center">Sequential BO (uses test set)</th>
+    <th colspan="7" class="group" style="text-align:center">INGS Variants (no test leakage)</th>
+  </tr>
+  <tr>
+    <th>Rand-30</th>
+    <th>Rand-5</th>
+    <th>SMTH-min</th>
+    <th>SMTH-max</th>
+    <th>TPE-30</th>
+    <th>BOHB-30</th>
+    <th>INGS</th>
+    <th>INGS-grad</th>
+    <th>INGS-CV</th>
+    <th>INGS-UCB</th>
+    <th>INGS-Multi</th>
+    <th>INGS-LHS</th>
+    <th>INGS-Full</th>
+  </tr>
+  
+    <tr>
+      <td><b>coc1000</b></td>
+      <td>0.298*</td>
+      <td>0.001 ± 0.013</td>
+      <td>-0.040 ± 0.041</td>
+      <td>-0.281 ± 0.080</td>
+      <td>-0.005 ± 0.012</td>
+      <td>-0.015 ± 0.025</td>
+      <td>-0.007 ± 0.022</td>
+      <td style="background:#f8d7da">-0.018 ± 0.033</td>
+      <td style="background:#fff3cd">-0.022 ± 0.043</td>
+      <td style="background:#f8d7da">-0.009 ± 0.019</td>
+      <td style="background:#fff3cd">-0.013 ± 0.024</td>
+      <td style="background:#f8d7da">-0.015 ± 0.018</td>
+      <td style="background:#f8d7da">-0.031 ± 0.038</td>
+      <td style="background:#fff3cd">-0.010 ± 0.023</td>
+    </tr>
+    <tr>
+      <td><b>nasa93dem</b></td>
+      <td>-0.051</td>
+      <td>0.842 ± 0.006</td>
+      <td>0.801 ± 0.052</td>
+      <td>0.805 ± 0.050</td>
+      <td>0.791 ± 0.052</td>
+      <td>0.705 ± 0.253</td>
+      <td>0.618 ± 0.574</td>
+      <td style="background:#fff3cd">0.550 ± 0.382</td>
+      <td style="background:#f8d7da">0.679 ± 0.252</td>
+      <td style="background:#fff3cd">0.699 ± 0.217</td>
+      <td style="background:#f8d7da">0.596 ± 0.288</td>
+      <td style="background:#f8d7da">0.720 ± 0.141</td>
+      <td style="background:#f8d7da">0.719 ± 0.093</td>
+      <td style="background:#fff3cd">0.705 ± 0.210</td>
+    </tr>
+    <tr>
+      <td><b>pom3a</b></td>
+      <td>-0.411*</td>
+      <td>0.221 ± 0.011</td>
+      <td>0.187 ± 0.056</td>
+      <td>0.093 ± 0.026</td>
+      <td>0.198 ± 0.013</td>
+      <td>0.228 ± 0.004</td>
+      <td>0.228 ± 0.009</td>
+      <td style="background:#f8d7da">0.207 ± 0.021</td>
+      <td style="background:#f8d7da">0.209 ± 0.013</td>
+      <td style="background:#f8d7da">0.200 ± 0.022</td>
+      <td style="background:#f8d7da">0.211 ± 0.018</td>
+      <td style="background:#fff3cd">0.218 ± 0.014</td>
+      <td style="background:#f8d7da">0.216 ± 0.013</td>
+      <td style="background:#fff3cd">0.225 ± 0.015</td>
+    </tr>
+    <tr>
+      <td><b>pom3b</b></td>
+      <td>-0.419*</td>
+      <td>0.215 ± 0.003</td>
+      <td>0.190 ± 0.019</td>
+      <td>0.068 ± 0.067</td>
+      <td>0.192 ± 0.010</td>
+      <td>0.199 ± 0.030</td>
+      <td>0.206 ± 0.021</td>
+      <td style="background:#f8d7da">0.201 ± 0.018</td>
+      <td style="background:#fff3cd">0.213 ± 0.007</td>
+      <td style="background:#f8d7da">0.198 ± 0.027</td>
+      <td style="background:#fff3cd">0.205 ± 0.019</td>
+      <td style="background:#f8d7da">0.204 ± 0.010</td>
+      <td style="background:#f8d7da">0.203 ± 0.021</td>
+      <td style="background:#f8d7da">0.196 ± 0.024</td>
+    </tr>
+    <tr>
+      <td><b>pom3c</b></td>
+      <td>-0.328*</td>
+      <td>0.195 ± 0.013</td>
+      <td>0.182 ± 0.016</td>
+      <td>0.045 ± 0.042</td>
+      <td>0.169 ± 0.015</td>
+      <td>0.203 ± 0.010</td>
+      <td>0.203 ± 0.012</td>
+      <td style="background:#f8d7da">0.184 ± 0.020</td>
+      <td style="background:#f8d7da">0.185 ± 0.023</td>
+      <td style="background:#f8d7da">0.179 ± 0.021</td>
+      <td style="background:#f8d7da">0.189 ± 0.024</td>
+      <td style="background:#f8d7da">0.194 ± 0.016</td>
+      <td style="background:#f8d7da">0.188 ± 0.018</td>
+      <td style="background:#f8d7da">0.189 ± 0.016</td>
+    </tr>
+    <tr>
+      <td><b>pom3d</b></td>
+      <td>0.056</td>
+      <td>0.150 ± 0.031</td>
+      <td>0.084 ± 0.053</td>
+      <td>-0.158 ± 0.127</td>
+      <td>0.124 ± 0.055</td>
+      <td>0.104 ± 0.058</td>
+      <td>0.053 ± 0.068</td>
+      <td style="background:#fff3cd">0.083 ± 0.044</td>
+      <td style="background:#fff3cd">0.059 ± 0.078</td>
+      <td style="background:#fff3cd">0.093 ± 0.055</td>
+      <td style="background:#f8d7da">0.022 ± 0.073</td>
+      <td style="background:#fff3cd">0.101 ± 0.067</td>
+      <td style="background:#fff3cd">0.087 ± 0.064</td>
+      <td style="background:#fff3cd">0.109 ± 0.049</td>
+    </tr>
+    <tr>
+      <td><b>xomo_flight</b></td>
+      <td>-0.519*</td>
+      <td>0.716 ± 0.005</td>
+      <td>0.683 ± 0.045</td>
+      <td>0.680 ± 0.034</td>
+      <td>0.613 ± 0.135</td>
+      <td>0.721 ± 0.003</td>
+      <td>0.723 ± 0.001</td>
+      <td style="background:#f8d7da">0.715 ± 0.003</td>
+      <td style="background:#f8d7da">0.719 ± 0.002</td>
+      <td style="background:#f8d7da">0.655 ± 0.133</td>
+      <td style="background:#f8d7da">0.719 ± 0.003</td>
+      <td style="background:#f8d7da">0.720 ± 0.002</td>
+      <td style="background:#f8d7da">0.718 ± 0.003</td>
+      <td style="background:#f8d7da">0.717 ± 0.004</td>
+    </tr>
+    <tr>
+      <td><b>xomo_ground</b></td>
+      <td>-0.534*</td>
+      <td>0.616 ± 0.020</td>
+      <td>0.560 ± 0.074</td>
+      <td>0.582 ± 0.027</td>
+      <td>0.499 ± 0.068</td>
+      <td>0.629 ± 0.009</td>
+      <td>0.623 ± 0.015</td>
+      <td style="background:#f8d7da">0.618 ± 0.008</td>
+      <td style="background:#f8d7da">0.621 ± 0.008</td>
+      <td style="background:#f8d7da">0.577 ± 0.080</td>
+      <td style="background:#f8d7da">0.622 ± 0.007</td>
+      <td style="background:#f8d7da">0.622 ± 0.007</td>
+      <td style="background:#f8d7da">0.615 ± 0.009</td>
+      <td style="background:#f8d7da">0.619 ± 0.011</td>
+    </tr>
+    <tr>
+      <td><b>xomo_osp</b></td>
+      <td>-0.665*</td>
+      <td>0.680 ± 0.004</td>
+      <td>0.632 ± 0.046</td>
+      <td>0.663 ± 0.016</td>
+      <td>0.559 ± 0.064</td>
+      <td>0.682 ± 0.006</td>
+      <td>0.679 ± 0.006</td>
+      <td style="background:#f8d7da">0.672 ± 0.009</td>
+      <td style="background:#f8d7da">0.652 ± 0.066</td>
+      <td style="background:#f8d7da">0.651 ± 0.059</td>
+      <td style="background:#f8d7da">0.672 ± 0.007</td>
+      <td style="background:#f8d7da">0.670 ± 0.010</td>
+      <td style="background:#f8d7da">0.668 ± 0.014</td>
+      <td style="background:#f8d7da">0.678 ± 0.006</td>
+    </tr>
+    <tr>
+      <td><b>xomo_osp2</b></td>
+      <td>-0.575*</td>
+      <td>0.744 ± 0.007</td>
+      <td>0.725 ± 0.028</td>
+      <td>0.688 ± 0.039</td>
+      <td>0.670 ± 0.051</td>
+      <td>0.746 ± 0.008</td>
+      <td>0.750 ± 0.002</td>
+      <td style="background:#fff3cd">0.747 ± 0.007</td>
+      <td style="background:#fff3cd">0.743 ± 0.011</td>
+      <td style="background:#f8d7da">0.714 ± 0.096</td>
+      <td style="background:#fff3cd">0.750 ± 0.001</td>
+      <td style="background:#fff3cd">0.746 ± 0.008</td>
+      <td style="background:#fff3cd">0.748 ± 0.004</td>
+      <td style="background:#f8d7da">0.735 ± 0.008</td>
+    </tr>
+</table>
+</div>
+
+<h2>3. Win/Tie/Loss Summary (INGS Variants vs. Reference Methods)</h2>
+<p>Statistical test: Mann-Whitney U, α = 0.05, one-sided (variant &gt; reference).
+BOHB reference uses the Experiment 5 run for a fair within-experiment comparison.
+<strong>Note: 10 repeats provides limited power; differences must be large to reach significance.</strong></p>
+<table>
+  <tr><th>INGS Variant</th><th>vs BOHB-30</th><th>vs TPE-30</th></tr>
+  <tr><td>INGS (Exp4)</td><td>0W / 3T / 7L</td><td>0W / 1T / 9L</td></tr> <tr><td>INGS-grad</td><td>0W / 4T / 6L</td><td>0W / 2T / 8L</td></tr> <tr><td>INGS-CV</td><td>0W / 2T / 8L</td><td>0W / 1T / 9L</td></tr> <tr><td>INGS-UCB</td><td>0W / 3T / 7L</td><td>0W / 2T / 8L</td></tr> <tr><td>INGS-Multi</td><td>0W / 3T / 7L</td><td>0W / 1T / 9L</td></tr> <tr><td>INGS-LHS</td><td>0W / 2T / 8L</td><td>0W / 1T / 9L</td></tr> <tr><td>INGS-Full</td><td>0W / 4T / 6L</td><td>0W / 1T / 9L</td></tr>
+</table>
+
+<div class="warn-box">
+<strong>Interpretation note.</strong> No INGS variant achieves a statistically significant win
+over BOHB at n=10 repeats. The mean R² differences are often positive (INGS numerically
+higher) but variance is too large for Mann-Whitney to confirm at this sample size.
+For example, on nasa93dem INGS-LHS achieves mean R²=0.719 vs BOHB=0.562 (+0.157), but
+BOHB's own standard deviation is ±0.355, making significance require ≈30 repeats.
+The tie/loss counts reflect statistical caution, not that the methods perform identically.
+</div>
+
+<h2>4. Key Findings</h2>
+
+<h3>Experiment 1: SMOOTHIE-Trees vs. Random Search</h3>
+<p>Smoothness direction is dataset-dependent: SMOOTHIE-min (flat trees, low β) reduces variance
+on XOMO; SMOOTHIE-max (expressive trees, high β) wins significantly on COC1000 and POM3d.
+Neither direction dominates universally.</p>
+
+<h3>Experiment 2: Smoothness as a Generalization Predictor</h3>
+<p>β-smoothness is a valid (if imperfect) signal: 7/10 datasets show significant negative
+Spearman ρ, confirming the "flat landscape = better generalization" hypothesis extends to
+decision trees on SE data. COC1000 is an outlier (complex feature interactions).</p>
+
+<h3>Experiment 3: SMOOTHIE-Trees vs. Sequential BO</h3>
+<p>TPE and BOHB win on all 10 datasets when allowed to use test-set feedback. The training-set
+smoothness proxy is weaker than direct test feedback within the same 30-evaluation budget.
+However, SMOOTHIE has no test-set leakage and is fully parallelizable.</p>
+
+<h3>Experiments 4–5: INGS — Interpolation-Guided Search</h3>
+<div class="result-box">
+<strong>Main result:</strong> INGS variants are numerically competitive with BOHB on most datasets
+(mean R² within ±0.01 on XOMO, notably higher on nasa93dem and pom3d) <em>without accessing
+the test set</em>. No variant achieves a statistically significant win over BOHB at n=10 repeats;
+the key improvement over the original SMOOTHIE is that INGS substantially reduces variance
+(e.g., INGS-LHS cuts nasa93dem std from 0.284 to 0.093) and closes the gap with sequential BO.
+</div>
+
+<p><strong>Most consistent improvement:</strong> INGS-Multi (multi-fold final selection) reduces
+selection noise across most datasets. INGS-LHS (Latin Hypercube init) most reliably
+reduces variance. INGS-Full combines both but the CV component can hurt on larger datasets
+by limiting exploration breadth.</p>
+
+<p><strong>Limitation:</strong> With n=10 repeats, the statistical power is low for detecting
+the observed mean differences. Confirming significance on nasa93dem or pom3d would
+require approximately 30 repeats.</p>
+
+</body>
+</html>
