@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smoothness-Guided Optimization — Opus Experiments</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 920px; margin: 40px auto; padding: 0 20px; line-height: 1.7; }
+  h1, h2 { color: #2c3e50; }
+  a { color: #2980b9; }
+  .card { border: 1px solid #ddd; border-left: 5px solid #3498db; border-radius: 6px; padding: 16px 20px; margin: 18px 0; background: #fbfdff; }
+  .card h2 { margin-top: 0; }
+  .tag { display: inline-block; background: #eef6fb; color: #2c3e50; border-radius: 4px; padding: 1px 8px; font-size: 0.8em; margin-right: 6px; }
+  code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-size: 0.9em; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.9em; }
+  th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+  th { background: #2c3e50; color: white; }
+</style>
+</head>
+<body>
+
+<h1>Smoothness-Guided Optimization — Opus Experiment Rounds</h1>
+<p><em>Extending SMOOTHIE (Yedida &amp; Menzies, 2025) to gradient-free settings on SE datasets.
+Each round below targets a different task and dataset family; the metric differs accordingly.</em></p>
+
+<p>See also <a href="../reports/index.html">Round 1</a> (Exps 1–5: establishing β-smoothness for trees and the INGS surrogate).</p>
+
+<div class="card">
+<h2><a href="process/index.html">Round 2 — Process datasets (regression / surrogate-HPO)</a></h2>
+<p><span class="tag">data/optimize/process/</span> <span class="tag">metric: R²</span>
+<span class="tag">10 datasets</span></p>
+<p><b>Task:</b> tune a decision tree's <em>hyperparameters</em> to best predict each dataset's
+aggregate effort/cost objective; score by test R². COC1000, NASA93, POM3a–d, XOMO flight/ground/osp/osp2.</p>
+<table>
+<tr><th>Exp</th><th>Question</th></tr>
+<tr><td><a href="process/exp6_fair_comparison.html">6 — Fair comparison</a></td><td>How much of TPE/BOHB's reported win was test-set peeking?</td></tr>
+<tr><td><a href="process/exp7_smas.html">7 — SMAS</a></td><td>Does combining val-R² and β reach parity with real BOHB using only training data?</td></tr>
+<tr><td><a href="process/exp8_screen.html">8 — SMAS-Screen</a></td><td>Does SMOOTHIE's cheap two-stage budget transfer to trees?</td></tr>
+</table>
+<p><b>Bottom line:</b> SMAS reaches parity with real BOHB (training-data only); TPE stays the quality
+leader; the cheap-screen trick gives only a modest ~1.6× speedup for trees.</p>
+</div>
+
+<div class="card" style="border-left-color:#27ae60;background:#fbfffc">
+<h2><a href="config/index.html">Round 3 — Configuration datasets (direct optimization)</a></h2>
+<p><span class="tag">data/optimize/config/</span> <span class="tag">metric: distance-to-heaven</span>
+<span class="tag">8 datasets</span></p>
+<p><b>Task:</b> search each software system's <em>configuration space</em> directly (pool-based active
+optimization over a lookup table); minimize distance-to-heaven of the best config found within an
+evaluation budget. SS-A/B/I/O, Apache, X264, SQL, HSMGP.</p>
+<table>
+<tr><th>Exp</th><th>Question</th></tr>
+<tr><td><a href="config/exp9_config_opt.html">9 — Smoothness-guided config optimization</a></td><td>Do smoothness-aware surrogates (INGS/SMAS) beat a no-smoothness surrogate and stay competitive with TPE at low budgets?</td></tr>
+</table>
+</div>
+
+</body></html>
