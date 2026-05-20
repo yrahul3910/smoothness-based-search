@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smoothness-Based HPO — Round 2 (Opus)</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 1000px; margin: 40px auto; padding: 0 20px; line-height: 1.7; }
+  h1, h2, h3 { color: #2c3e50; }
+  a { color: #2980b9; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #ccc; padding: 10px 14px; text-align: left; }
+  th { background: #2c3e50; color: white; }
+  .math { font-style: italic; }
+  .box { background: #eef6fb; border-left: 4px solid #3498db; padding: 12px 16px; margin: 16px 0; }
+  .win-box { background: #eafaf1; border-left: 4px solid #27ae60; padding: 12px 16px; margin: 16px 0; }
+  .status-done { color: #27ae60; font-weight: bold; }
+  code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-size: 0.9em; }
+  pre { background: #f8f8f8; padding: 10px; border-radius: 4px; font-size: 0.9em; }
+</style>
+</head>
+<body>
+
+<h1>Smoothness-Based HPO — Round 2</h1>
+<p><em>Follow-up to <a href="../../reports/index.html">Round 1</a> (Exps 1–5).</em>
+Two new experiments addressing two distinct gaps left by the prior round.</p>
+
+<h2>Background</h2>
+<p>
+Round 1 extended SMOOTHIE (Yedida &amp; Menzies, 2025) to gradient-free tree
+learners on 10 SE optimization datasets. Two unresolved threads motivated this round:
+</p>
+<ol>
+  <li><b>Apples-to-oranges baselines.</b> The Exp 3/Exp 5 reports compared
+  INGS (no test access during search) against TPE/BOHB that used <code>r2_score(y_test,…)</code>
+  directly as the search objective. The reported "INGS loses 0W/2T/8L vs BOHB"
+  partly reflected that asymmetry, not INGS's actual quality.</li>
+  <li><b>Combining signals.</b> INGS uses val-R² alone; SMOOTHIE-Trees uses β
+  alone; neither uses both. Exp 2 found significant β–R² correlations but
+  dataset-dependent sign. Could one method adaptively combine the two signals?</li>
+</ol>
+
+<h2>What's new in Round 2</h2>
+<ul>
+  <li><b>Real BOHB</b> — Exp 3/5 used a TPE stand-in (TPESampler with reduced
+  startup) for "BOHB". Round 2 uses actual BOHB from <code>hpbandster</code>
+  with KDE-based model selection and Hyperband-style sub-sampling fidelity.</li>
+  <li><b>Fair baselines</b> — for each of TPE, BOHB, Random we run two
+  variants: <em>fair</em> (search objective = val R² on a held-out split of
+  <code>x_train</code>) and <em>peeking</em> (search objective = test R²).</li>
+  <li><b>SMAS</b> — Smoothness-Augmented INGS. Composite acquisition with an
+  adaptive smoothness term, defined below.</li>
+</ul>
+
+<h2>SMAS in one display</h2>
+<div class="box" style="background:#fdfaf6;border-left:4px solid #b08940">
+<p class="math" style="margin:8px 0">
+score(h) = (1 − w<sub>eff</sub>) · z(R̂²(h))
+         + w<sub>eff</sub> · sign · z(β̂(h))
+         + κ · min<sub>obs</sub> ‖h − obs‖ / √d
+</p>
+<p>where R̂² and β̂ are linear RBF interpolants over (config_vec, observed_val_R²)
+and (config_vec, observed_β), and the smoothness coefficients are set by the
+pilot Spearman correlation:</p>
+<p class="math" style="margin:8px 0">
+ρ = Spearman(β, R²) over pilot, &nbsp; sign = ρ ≥ 0 ? +1 : −1, &nbsp; w<sub>eff</sub> = 0.4 · |ρ|.
+</p>
+<p>The adaptive |ρ| weight makes SMAS auto-dampen the β term when there is no
+correlation signal — in that case SMAS reduces to INGS-Full. When the
+correlation is strong, β takes over up to 40% of the acquisition weight.</p>
+</div>
+
+<h2>Experiments</h2>
+<table>
+  <tr>
+    <th>#</th>
+    <th>Experiment</th>
+    <th>Research question</th>
+    <th>Report</th>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>Fair-comparison reframing</td>
+    <td>How much of TPE/BOHB's reported win was test-set peeking?</td>
+    <td><a href="exp6_fair_comparison.html">exp6_fair_comparison.html</a></td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>SMAS — Smoothness-Augmented INGS</td>
+    <td>Does combining val-R² and β with an adaptive weight outperform either alone, and reach parity with TPE/BOHB under fair conditions?</td>
+    <td><a href="exp7_smas.html">exp7_smas.html</a></td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>SMAS-Screen — SMOOTHIE-style two-stage budget</td>
+    <td>Does a cheap low-fidelity screen over many configs (then full-train the top few) recover the original SMOOTHIE speed win for trees?</td>
+    <td><a href="exp8_screen.html">exp8_screen.html</a></td>
+  </tr>
+</table>
+
+<div class="box">
+<b>Round-2 bottom line.</b> (6) Most of the prior "TPE/BOHB beat INGS" verdict was
+test-set peeking — it vanishes on large datasets under fair conditions.
+(7) <b>SMAS reaches parity with real BOHB</b> using only training data, but TPE
+remains the quality leader. (8) Porting SMOOTHIE's cheap-screen budget to trees
+gives only a <b>modest ~1.6× speedup</b> and costs some quality — the trick that
+was decisive for neural nets largely evaporates because trees are already cheap
+and BOHB already sub-samples. Net: <b>SMAS (Exp 7) is the method to use</b>;
+the screen variant is a speed/quality knob, not a free lunch.
+</div>
+
+<h2>Setup</h2>
+<ul>
+  <li><b>Datasets.</b> All 10 CSVs under <code>data/optimize/process/</code>
+  (COC1000, NASA93, POM3a/b/c/d, XOMO flight/ground/osp/osp2). Inputs and
+  multi-objective targets handled per <code>src/matplotlib.create_surface_data</code>
+  — minimize / maximize columns are normalized and combined as
+  <span class="math">y = √(Σ obj²)</span>.</li>
+  <li><b>HPO space.</b> Same as Exp 5 (DT-only, 5 categorical hyperparameters).</li>
+  <li><b>Budget.</b> 30 model trains per method per repeat. INGS/SMAS use 15 configs ×
+  2-fold CV; BOHB uses 3 SH iterations with η=3, budget ∈ [1/9, 1] subsample
+  fraction; TPE uses 30 trials with 10 startup; Random uses 30 picks.</li>
+  <li><b>Repeats.</b> 15 per dataset per method.</li>
+  <li><b>Stat test.</b> Mann-Whitney U (greater), α=0.05. Tie = neither passes
+  but medians match.</li>
+</ul>
+
+<h2>Key files</h2>
+<ul>
+  <li><code>src/methods.py</code> — all 9 method implementations (incl. <code>smas_screen</code>).</li>
+  <li><code>src/smoothness_trees.py</code> — β computation reused from Round 1.</li>
+  <li><code>exp_opus.py</code> — driver that produces all three reports + raw JSON.</li>
+  <li><code>reports_opus/process/exp_opus_raw.json</code> — per-repeat [R², MSE, wall-clock]
+  for full reproducibility.</li>
+</ul>
+
+<h2>Reproducing</h2>
+<pre>uv run python exp_opus.py                # full: 10 datasets × 15 repeats × 8 methods (~3.3 hr)
+uv run python exp_opus.py --add-screen   # run smas_screen, merge into JSON, build Exp 8
+uv run python exp_opus.py --report-only  # rebuild all HTML from cached JSON
+uv run python exp_opus.py --prototype    # 3 datasets × 3 repeats (quick sanity)
+</pre>
+
+</body></html>
