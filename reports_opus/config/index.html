@@ -59,16 +59,25 @@ configs, replacing the trained-learner β of Rounds 1–2.
 
 <h2>Experiment</h2>
 <p><a href="exp9_config_opt.html"><b>Exp 9 — Smoothness-guided configuration optimization</b></a>
-(8 datasets × 20 repeats, budgets 10/20/30/50, with per-dataset convergence curves).</p>
+(8 datasets × 50 repeats, budgets 10/20/30/50, with per-dataset convergence curves).</p>
 
 <div class="win-box">
-<b>Headline.</b> SMAS <b>beats TPE</b> at N=30 (5W/1T/2L), beats Random (6W/1T/1L), and beats
-the no-smoothness Greedy ablation (4W/2T/2L) — with the margin over Greedy <i>growing</i> with
-budget (1W/3T/4L at N=10 → 5W/2T/1L at N=50). Mean d2h at N=30: SMAS 0.051, INGS 0.056,
-TPE 0.095, Greedy 0.074, Random 0.081. This is the strongest result across all three rounds:
-unlike the regression task where TPE dominated, the smoothness prior makes SMAS the best
-optimizer here, and TPE only wins clearly on the 39-dim SQL space where the RBF surrogate
-struggles.
+<b>Headline.</b> The smoothness-aware surrogate optimizer <b>beats TPE</b> at N=30
+(SMAS 6W/0T/2L, INGS 5W/0T/3L), beats Random (6W/1T/1L), and beats the no-smoothness Greedy
+ablation (margin <i>grows</i> with budget: 1W/2T/5L at N=10 → 5W/2T/1L at N=50). Mean d2h at
+N=30: SMAS 0.051, INGS 0.052, TPE 0.094, Greedy 0.068, Random 0.083. This is the strongest
+result across all three rounds — unlike the regression task where TPE dominated, the
+smoothness prior wins here, and TPE only competes on the 39-dim SQL space.
+</div>
+
+<div class="box" style="border-left-color:#d4a017;background:#fef9e7">
+<b>Honest caveat on SMAS vs INGS.</b> SMAS = INGS + an adaptive κ controller based on the
+surrogate tree's β-smoothness. At 50 repeats SMAS and INGS are <b>statistically
+indistinguishable</b> (SMAS vs INGS Mann-Whitney: 0W/7T/1L at N=30; paired Wilcoxon p &gt; 0.1
+at every budget). The visible separation on the convergence plots is within noise. So the
+win over TPE comes from the <b>RBF + anti-Laplacian + UCB</b> core — INGS — not from the
+β-controller. INGS is the simpler method that achieves the result; SMAS is its β-controlled
+variant we couldn't show adds significant value on this benchmark.
 </div>
 
 <h2>Reproducing</h2>

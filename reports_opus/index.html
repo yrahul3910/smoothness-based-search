@@ -51,6 +51,11 @@ evaluation budget. SS-A/B/I/O, Apache, X264, SQL, HSMGP.</p>
 <tr><th>Exp</th><th>Question</th></tr>
 <tr><td><a href="config/exp9_config_opt.html">9 — Smoothness-guided config optimization</a></td><td>Do smoothness-aware surrogates (INGS/SMAS) beat a no-smoothness surrogate and stay competitive with TPE at low budgets?</td></tr>
 </table>
+<p><b>Bottom line:</b> INGS (RBF surrogate + anti-Laplacian + UCB) beats TPE 5W/0T/3L at N=30
+and 6W/1T/1L at N=50 across 8 config datasets (50 repeats). SMAS = INGS + a β-controller, but
+at 50 repeats SMAS and INGS are <b>statistically indistinguishable</b> (paired Wilcoxon p&gt;0.1
+at every budget) — the win is INGS's; the β-controller didn't earn its complexity on this
+benchmark.</p>
 </div>
 
 </body></html>

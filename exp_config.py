@@ -162,20 +162,27 @@ def gen_report(payload: dict, runtime: float) -> str:
             cells = "".join(f"<td>{wtl(variant, ref, b)}</td>" for b in BUDGETS)
             wtl_rows += (f"<tr><td>{METHOD_LABELS[variant]} vs {METHOD_LABELS[ref]}</td>"
                          f"{cells}</tr>")
+    # Direct ablation of the SMAS β-controller: SMAS vs INGS.
+    cells = "".join(f"<td>{wtl('smas', 'ings', b)}</td>" for b in BUDGETS)
+    wtl_rows += (f"<tr style='background:#f4f4f4'><td><i>SMAS vs INGS — β-controller ablation</i></td>"
+                 f"{cells}</tr>")
+
+    # Paired Wilcoxon (1-sided, SMAS < INGS) on per-dataset means, for the controller note.
+    from scipy.stats import wilcoxon
+    paired_p = {}
+    for b in BUDGETS:
+        s = np.array([np.mean(results[ds]["smas"][b]) for ds in ds_list])
+        i = np.array([np.mean(results[ds]["ings"][b]) for ds in ds_list])
+        try:
+            _, paired_p[b] = wilcoxon(s, i, alternative="less")
+        except Exception:
+            paired_p[b] = float("nan")
 
     curves = "".join(f'<img src="exp9_{ds}.png" alt="{ds} convergence">' for ds in ds_list)
 
     # Aggregate headline numbers at primary budget.
     def mean_at(m, b):
         return np.mean([np.mean(results[ds][m][b]) for ds in ds_list])
-    smas_vs_greedy = sum(
-        mann_whitney_lower(results[ds]["smas"][PRIMARY_BUDGET],
-                           results[ds]["greedy"][PRIMARY_BUDGET]) == "win"
-        for ds in ds_list)
-    ings_vs_greedy = sum(
-        mann_whitney_lower(results[ds]["ings"][PRIMARY_BUDGET],
-                           results[ds]["greedy"][PRIMARY_BUDGET]) == "win"
-        for ds in ds_list)
 
     return f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>Exp 9: Smoothness-Guided Configuration Optimization</title>
@@ -231,33 +238,59 @@ out. TPE is kept as the SOTA optimizer.
 </table>
 
 <div class="win-box">
-<b>Headline (N={PRIMARY_BUDGET}):</b> <b>SMAS beats TPE — the SOTA optimizer — on this task</b>
-({wtl('smas', 'tpe', PRIMARY_BUDGET)}), and also beats Random ({wtl('smas', 'random', PRIMARY_BUDGET)})
-and the no-smoothness Greedy ablation ({wtl('smas', 'greedy', PRIMARY_BUDGET)}). The smoothness
-signal carries real information in config space — SMAS/INGS beat Greedy on
-{max(smas_vs_greedy, ings_vs_greedy)}/{len(ds_list)} datasets, and the margin <i>grows with budget</i>
+<b>Headline (N={PRIMARY_BUDGET}):</b> the smoothness-aware surrogate optimizer
+<b>beats TPE — the SOTA baseline — on this task</b>:
+SMAS {wtl('smas','tpe',PRIMARY_BUDGET)}, INGS {wtl('ings','tpe',PRIMARY_BUDGET)} vs Fair-TPE.
+Both also beat Random ({wtl('smas','random',PRIMARY_BUDGET)} / {wtl('ings','random',PRIMARY_BUDGET)})
+and the no-smoothness Greedy ablation ({wtl('smas','greedy',PRIMARY_BUDGET)} / {wtl('ings','greedy',PRIMARY_BUDGET)}),
+and the margin over Greedy <i>grows with budget</i>
 (SMAS vs Greedy: {wtl('smas','greedy',10)} at N=10 → {wtl('smas','greedy',50)} at N=50).
 Mean d2h at N={PRIMARY_BUDGET}: SMAS {mean_at('smas', PRIMARY_BUDGET):.3f},
 INGS {mean_at('ings', PRIMARY_BUDGET):.3f}, TPE {mean_at('tpe', PRIMARY_BUDGET):.3f},
 Greedy {mean_at('greedy', PRIMARY_BUDGET):.3f}, Random {mean_at('random', PRIMARY_BUDGET):.3f}.
-This is a markedly stronger result than the process rounds, where TPE dominated.
+</div>
+
+<div class="box" style="border-left-color:#d4a017;background:#fef9e7">
+<b>The β-controller doesn't pay off.</b> SMAS = INGS + an adaptive κ controller driven
+by the surrogate tree's β-smoothness. At {n_rep} repeats, SMAS vs INGS is
+{wtl('smas','ings',10)} at N=10 → {wtl('smas','ings',PRIMARY_BUDGET)} at N={PRIMARY_BUDGET}
+→ {wtl('smas','ings',50)} at N=50, and a one-sided paired Wilcoxon on the 8
+per-dataset means never crosses α=0.05 (p={paired_p[10]:.2f} / {paired_p[20]:.2f} /
+{paired_p[PRIMARY_BUDGET]:.2f} / {paired_p[50]:.2f} at N=10/20/30/50).
+So the headline win over TPE is coming from the <b>RBF + anti-Laplacian + UCB</b>
+core (which INGS already has), <i>not</i> from the SMAS-specific β-controller.
+INGS is the simpler method that achieves the result.
 </div>
 
 <h2>6. Discussion</h2>
 <p>
-<b>Smoothness exploitation transfers to config space.</b> The anti-Laplacian
-acquisition (INGS) and the β-controller (SMAS) both improve over the plain Greedy
-surrogate, which only chases the lowest predicted d2h. This re-validates the paper's
-core premise — that SE response surfaces are smooth enough to exploit — on a task and
-data family it was never tested on, without assuming the Round-1 tree-β results carry
-over.
+<b>Smoothness exploitation transfers to config space.</b> Both INGS and SMAS improve over
+the plain Greedy surrogate (which only chases the lowest predicted d2h), confirming that
+the anti-Laplacian acquisition and the UCB exploration term carry real information here.
+This re-validates the paper's core premise — that SE response surfaces are smooth enough
+to exploit — on a task and data family it was never tested on, without assuming the
+Round-1 tree-β results carry over.
+</p>
+<p>
+<b>The win is INGS's, not SMAS-specific.</b> The only mechanism distinguishing SMAS from
+INGS is the β-controller that modulates κ by the measured landscape roughness — and at
+{n_rep} repeats that controller is doing nothing detectable: the SMAS-vs-INGS row above
+is {wtl('smas','ings',PRIMARY_BUDGET)} at N={PRIMARY_BUDGET}, paired Wilcoxon p &gt; 0.1
+at every budget, and the mean Δ shrinks toward zero as power increases. Reading the
+plots one might infer SMAS is the better method; the statistics say the two are
+indistinguishable. The honest framing is: <b>INGS</b> (RBF surrogate + anti-Laplacian +
+UCB) is the simple method that beats TPE on this task; SMAS is its β-controlled variant
+that we couldn't show adds significant value. The β signal may still help under
+conditions we haven't tested (different λ schedule, harder landscapes, smaller budgets),
+but on this benchmark it doesn't earn its complexity.
 </p>
 <p>
 <b>TPE is not dominant here.</b> Unlike the regression rounds, TPE over-exploits on the
 low-dimensional multi-objective SS datasets (its snapped proposals cluster, losing the
 coverage that Random gets for free), and it struggles in the highest dimensions
-(SQL, 39-dim). The smoothness-aware surrogates are competitive with or ahead of it,
-especially at small budgets where a good prior matters most.
+(SQL, 39-dim, where the RBF also struggles but slightly less). The smoothness-aware
+surrogates are competitive with or ahead of it, especially at small budgets where a
+good prior matters most.
 </p>
 <p>
 <b>Random is a strong baseline</b> — a well-known phenomenon in software-configuration
