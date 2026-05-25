@@ -2,60 +2,142 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Smoothness-Guided Optimization — Opus Experiments</title>
+<title>Smoothness-Guided Optimization — Experiment Index</title>
 <style>
-  body { font-family: Georgia, serif; max-width: 920px; margin: 40px auto; padding: 0 20px; line-height: 1.7; }
+  body { font-family: Georgia, serif; max-width: 1100px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
   h1, h2 { color: #2c3e50; }
   a { color: #2980b9; }
-  .card { border: 1px solid #ddd; border-left: 5px solid #3498db; border-radius: 6px; padding: 16px 20px; margin: 18px 0; background: #fbfdff; }
-  .card h2 { margin-top: 0; }
-  .tag { display: inline-block; background: #eef6fb; color: #2c3e50; border-radius: 4px; padding: 1px 8px; font-size: 0.8em; margin-right: 6px; }
+  .round { border: 1px solid #ddd; border-left: 5px solid #3498db; border-radius: 6px;
+           padding: 14px 20px; margin: 22px 0; background: #fbfdff; }
+  .round.r1 { border-left-color: #95a5a6; background: #fafafa; }
+  .round.r3 { border-left-color: #27ae60; background: #fbfffc; }
+  .round h2 { margin-top: 0; }
+  .tag { display: inline-block; background: #eef6fb; color: #2c3e50; border-radius: 4px;
+         padding: 1px 8px; font-size: 0.8em; margin-right: 6px; }
   code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-size: 0.9em; }
-  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.9em; }
-  th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.85em; }
+  th, td { border: 1px solid #ccc; padding: 6px 9px; text-align: left; vertical-align: top; }
   th { background: #2c3e50; color: white; }
+  td.num { text-align: center; font-weight: bold; }
+  td.reps { text-align: center; }
+  .bottom-line { font-size: 0.92em; }
 </style>
 </head>
 <body>
 
-<h1>Smoothness-Guided Optimization — Opus Experiment Rounds</h1>
+<h1>Smoothness-Guided Optimization — Experiment Index</h1>
 <p><em>Extending SMOOTHIE (Yedida &amp; Menzies, 2025) to gradient-free settings on SE datasets.
-Each round below targets a different task and dataset family; the metric differs accordingly.</em></p>
+Each round targets a different task and dataset family; the metric differs accordingly.</em></p>
 
-<p>See also <a href="../reports/index.html">Round 1</a> (Exps 1–5: establishing β-smoothness for trees and the INGS surrogate).</p>
+<p>Datasets used throughout: <b>Process</b> = <code>data/optimize/process/</code> (10 SE regression
+datasets: COC1000, NASA93, POM3a–d, XOMO flight/ground/osp/osp2). <b>Config</b> =
+<code>data/optimize/config/</code> (8 software-config lookup tables: SS-A, SS-B, SS-I, SS-O,
+Apache, X264, SQL, HSMGP).</p>
 
-<div class="card">
-<h2><a href="process/index.html">Round 2 — Process datasets (regression / surrogate-HPO)</a></h2>
-<p><span class="tag">data/optimize/process/</span> <span class="tag">metric: R²</span>
-<span class="tag">10 datasets</span></p>
-<p><b>Task:</b> tune a decision tree's <em>hyperparameters</em> to best predict each dataset's
-aggregate effort/cost objective; score by test R². COC1000, NASA93, POM3a–d, XOMO flight/ground/osp/osp2.</p>
+<!-- ─────────────────────────────────────────────────────────────────────── -->
+
+<div class="round r1">
+<h2>Round 1 — Establishing β-smoothness for trees and the INGS surrogate
+<span class="tag">prior sessions</span> <span class="tag">process</span> <span class="tag">R²</span></h2>
+<p>Full reports at <a href="../reports/index.html">../reports/</a>. Round-1 work introduced
+the tree-β formulation and the INGS interpolation surrogate that Rounds 2 &amp; 3 build on.</p>
 <table>
-<tr><th>Exp</th><th>Question</th></tr>
-<tr><td><a href="process/exp6_fair_comparison.html">6 — Fair comparison</a></td><td>How much of TPE/BOHB's reported win was test-set peeking?</td></tr>
-<tr><td><a href="process/exp7_smas.html">7 — SMAS</a></td><td>Does combining val-R² and β reach parity with real BOHB using only training data?</td></tr>
-<tr><td><a href="process/exp8_screen.html">8 — SMAS-Screen</a></td><td>Does SMOOTHIE's cheap two-stage budget transfer to trees?</td></tr>
+<tr><th>#</th><th>Treatment</th><th>Main result</th><th>Repeats</th><th>Datasets</th></tr>
+<tr>
+  <td class="num"><a href="../reports/exp1_smoothie_trees.html">1</a></td>
+  <td>SMOOTHIE-min vs SMOOTHIE-max vs random (DT only, N₂=5 from N₁=30)</td>
+  <td>Direction matters: SMOOTHIE-min wins on XOMO; SMOOTHIE-max wins on COC1000 / POM3d. Neither universally.</td>
+  <td class="reps">10</td><td>10 process</td>
+</tr>
+<tr>
+  <td class="num"><a href="../reports/exp2_smoothness_correlation.html">2</a></td>
+  <td>Spearman ρ(β, R²) across 150 configs/dataset (DT + RF pool)</td>
+  <td>7/10 datasets show negative ρ ∈ [−0.33, −0.67]; COC1000 alone positive (ρ = +0.30). β–R² sign is learner- and dataset-dependent.</td>
+  <td class="reps">150 configs</td><td>10 process</td>
+</tr>
+<tr>
+  <td class="num"><a href="../reports/exp3_bohb_tpe.html">3</a></td>
+  <td>SMOOTHIE-Trees vs TPE / BOHB stand-in, 30-eval budget</td>
+  <td>TPE/BOHB win all 10 datasets. Later attributed (Exp 6) to test-set peeking in the baseline objectives.</td>
+  <td class="reps">10</td><td>10 process</td>
+</tr>
+<tr>
+  <td class="num"><a href="../reports/exp4_ings.html">4</a></td>
+  <td>INGS — RBF interpolation + anti-Laplacian acquisition; val-R² proxy</td>
+  <td>Matches TPE on smooth XOMO; lags on small datasets (nasa93dem, POM3) due to noisy 20%-split proxy.</td>
+  <td class="reps">10</td><td>10 process</td>
+</tr>
+<tr>
+  <td class="num"><a href="../reports/exp5_ings_improved.html">5</a></td>
+  <td>INGS refinements: 2-fold CV proxy, UCB bonus, multi-fold selection, LHS init, and combined <code>ings_full</code></td>
+  <td><code>ings_full</code> reaches 0W/4T/6L vs the TPE-stand-in BOHB — the basis SMAS later extends.</td>
+  <td class="reps">10</td><td>10 process</td>
+</tr>
 </table>
-<p><b>Bottom line:</b> SMAS reaches parity with real BOHB (training-data only); TPE stays the quality
-leader; the cheap-screen trick gives only a modest ~1.6× speedup for trees.</p>
 </div>
 
-<div class="card" style="border-left-color:#27ae60;background:#fbfffc">
-<h2><a href="config/index.html">Round 3 — Configuration datasets (direct optimization)</a></h2>
-<p><span class="tag">data/optimize/config/</span> <span class="tag">metric: distance-to-heaven</span>
-<span class="tag">8 datasets</span></p>
-<p><b>Task:</b> search each software system's <em>configuration space</em> directly (pool-based active
-optimization over a lookup table); minimize distance-to-heaven of the best config found within an
-evaluation budget. SS-A/B/I/O, Apache, X264, SQL, HSMGP.</p>
+<!-- ─────────────────────────────────────────────────────────────────────── -->
+
+<div class="round">
+<h2><a href="process/index.html">Round 2 — Surrogate-HPO on process datasets, fair-comparison reframing</a>
+<span class="tag">process</span> <span class="tag">R²</span></h2>
+<p>Tune a decision tree's <em>hyperparameters</em> to predict each dataset's aggregate
+(√Σobj²) target; score by test R². Replaces the Round-1 TPE-stand-in BOHB with real
+hpbandster BOHB and removes test-set peeking from the baselines.</p>
 <table>
-<tr><th>Exp</th><th>Question</th></tr>
-<tr><td><a href="config/exp9_config_opt.html">9 — Smoothness-guided config optimization</a></td><td>Do smoothness-aware surrogates (INGS/SMAS) beat a no-smoothness surrogate and stay competitive with TPE at low budgets?</td></tr>
+<tr><th>#</th><th>Treatment</th><th>Main result</th><th>Repeats</th><th>Datasets</th></tr>
+<tr>
+  <td class="num"><a href="process/exp6_fair_comparison.html">6</a></td>
+  <td>Fair vs peeking TPE/BOHB/Random — re-run baselines with val-R² objective (no test leakage)</td>
+  <td>Peeking advantage concentrated on tiny test sets (BOHB +0.20, Random +0.19 on nasa93dem 19 rows); ≤0.018 on large XOMO/POM. TPE is most peeking-robust.</td>
+  <td class="reps">15</td><td>10 process</td>
+</tr>
+<tr>
+  <td class="num"><a href="process/exp7_smas.html">7</a></td>
+  <td>SMAS — INGS acquisition + adaptive β-term (sign &amp; weight from pilot Spearman(β,val-R²))</td>
+  <td>Reaches parity with real BOHB: 2W/5T/3L vs Fair-BOHB, 0W/5T/5L vs peeking-BOHB (matches BOHB without seeing the test set). Loses to TPE 1W/1T/8L; ≈ INGS.</td>
+  <td class="reps">15</td><td>10 process</td>
+</tr>
+<tr>
+  <td class="num"><a href="process/exp8_screen.html">8</a></td>
+  <td>SMAS-Screen — SMOOTHIE-style two-stage budget: cheap low-fidelity screen (80 configs at 5% subsample) → full-train top 8</td>
+  <td>Only ~1.6× faster than TPE (not 3–10× as in original SMOOTHIE); 0W/1T/9L on quality vs Fair-TPE. The cheap-screen trick transfers only partially to trees.</td>
+  <td class="reps">15</td><td>10 process</td>
+</tr>
 </table>
-<p><b>Bottom line:</b> INGS (RBF surrogate + anti-Laplacian + UCB) beats TPE 5W/0T/3L at N=30
-and 6W/1T/1L at N=50 across 8 config datasets (50 repeats). SMAS = INGS + a β-controller, but
-at 50 repeats SMAS and INGS are <b>statistically indistinguishable</b> (paired Wilcoxon p&gt;0.1
-at every budget) — the win is INGS's; the β-controller didn't earn its complexity on this
-benchmark.</p>
+<p class="bottom-line"><b>Bottom line:</b> SMAS reaches parity with real BOHB using only training
+data, but TPE remains the quality leader; the cheap-screen variant trades a small speed gain
+for measurable quality loss.</p>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────────── -->
+
+<div class="round r3">
+<h2><a href="config/index.html">Round 3 — Direct configuration optimization on config datasets</a>
+<span class="tag">config</span> <span class="tag">distance-to-heaven</span></h2>
+<p>Search each software system's <em>configuration space</em> directly: pool-based active
+optimization over a lookup table; reveal up to N configs' d2h, return the best found.
+Methods set shrinks vs Round 2 because evaluating d2h IS the legitimate objective
+(no test peeking) and there is no fidelity axis (no BOHB).</p>
+<table>
+<tr><th>#</th><th>Treatment</th><th>Main result</th><th>Repeats</th><th>Datasets</th></tr>
+<tr>
+  <td class="num"><a href="config/exp9_config_opt.html">9</a></td>
+  <td>5 methods: Random, TPE (snap to nearest row), Greedy surrogate (ablation), INGS (anti-Laplacian + UCB), SMAS (INGS + β-controller). Budgets 10/20/30/50.</td>
+  <td>INGS/SMAS beat TPE: SMAS 6W/0T/2L, INGS 5W/0T/3L at N=30; vs Random 6–7W/0–1T/1L; vs Greedy 5W/1T/2L at N=30 (margin grows with budget). SMAS ≈ INGS (paired Wilcoxon p&gt;0.10 every budget) — the β-controller adds no significant value.</td>
+  <td class="reps">50</td><td>8 config</td>
+</tr>
+<tr>
+  <td class="num"><a href="config/exp9_kappa_sweep.html">9b</a></td>
+  <td>SMAS κ_base sensitivity sweep over {0, 0.05, 0.10, 0.15, 0.25, 0.5, 1.0}</td>
+  <td>Aggregate-insensitive (~0.004 d2h range across full sweep at N=30; no paired Wilcoxon p &lt; 0.15 vs default). Per-dataset best κ varies wildly (κ=1.0 for 3 datasets, κ=0.0 for 2, etc.). Controller is architecturally capped: κ_eff ∈ (0, κ_base), can't reach the high-exploration regimes some datasets need.</td>
+  <td class="reps">50</td><td>8 config</td>
+</tr>
+</table>
+<p class="bottom-line"><b>Bottom line:</b> Smoothness-aware surrogate optimization beats TPE on
+direct config tuning — the strongest result across all three rounds. The win is INGS's
+(RBF + anti-Laplacian + UCB); SMAS's β-controller doesn't earn its complexity within the
+current architecture, and the sensitivity sweep shows that's not a tuning artifact.</p>
 </div>
 
 </body></html>
