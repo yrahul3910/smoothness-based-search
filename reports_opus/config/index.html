@@ -57,9 +57,17 @@ configs, replacing the trained-learner β of Rounds 1–2.
 <tr><td>HSMGP</td><td>1 (AvgTimePerIteration−)</td><td>12</td><td>3456</td></tr>
 </table>
 
-<h2>Experiment</h2>
-<p><a href="exp9_config_opt.html"><b>Exp 9 — Smoothness-guided configuration optimization</b></a>
-(8 datasets × 50 repeats, budgets 10/20/30/50, with per-dataset convergence curves).</p>
+<h2>Experiments</h2>
+<ul>
+<li><a href="exp9_config_opt.html"><b>Exp 9 — Smoothness-guided configuration optimization</b></a>
+(8 datasets × 50 repeats; INGS/SMAS beat TPE on this subset).</li>
+<li><a href="exp9_kappa_sweep.html"><b>Exp 9b — SMAS κ-base sensitivity sweep</b></a>
+(controller's exploration weight is aggregate-insensitive; architecturally capped).</li>
+<li><a href="exp9c_explore.html"><b>Exp 9c — Negative screen: κ-bounds and surrogate alternatives</b></a>
+(wider κ bounds hurt; RBF beats every alternative surrogate including GP).</li>
+<li><a href="exp10_wide.html"><b>Exp 10 — Wide replication on 28 datasets</b></a>
+(Exp 9 SMAS-beats-TPE headline moderates to "competitive, not dominant"; INGS edges out SMAS).</li>
+</ul>
 
 <div class="win-box">
 <b>Headline.</b> The smoothness-aware surrogate optimizer <b>beats TPE</b> at N=30

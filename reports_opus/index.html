@@ -134,6 +134,12 @@ Methods set shrinks vs Round 2 because evaluating d2h IS the legitimate objectiv
   <td class="reps">50</td><td>8 config</td>
 </tr>
 <tr>
+  <td class="num"><a href="config/exp9c_explore.html">9c</a></td>
+  <td>Two follow-ups screened: (1) wider κ bounds for SMAS — replace κ_eff ∈ (0, κ_base) with (κ_lo, κ_hi); (2) replace the RBF surrogate with linear/kNN/RF/GP. 4 representative datasets × 20 repeats.</td>
+  <td><b>Both directions hurt.</b> Wider κ monotonically worse (mean drops from 74.8 to 69.4 at the widest <code>(0, 2.0)</code>) — the architectural-cap framing from Exp 9b was wrong, the β signal is too noisy for wider range. RBF/linear beats every alternative surrogate (mean 78.2; linear 75.1, RF 75.3, kNN ~71, GP-Matern 69.7 = worst). Both directions abandoned.</td>
+  <td class="reps">20</td><td>4 (X264, SS-A, SS-W, SQL)</td>
+</tr>
+<tr>
   <td class="num"><a href="config/exp10_wide.html">10</a></td>
   <td>Same 5 methods, expanded to all 24 SS-A–X + Apache/X264/SQL + Health-ClosedIssues (12 files concatenated → ~120k row pool). No subsampling. Scrum1k/10k/100k held back for an overnight run.</td>
   <td>The Exp 9 result <i>moderates</i> with wider coverage. INGS/SMAS still beat the no-smoothness Greedy ablation cleanly. Mean win@N=30: INGS 85.1, SMAS 83.7, TPE 77.8, Random 78.6, Greedy 76.7. But per-dataset W/T/L is near-even (SMAS vs TPE 11W/7T/10L; INGS vs TPE 14W/5T/9L). Only INGS reaches paired-Wilcoxon significance vs TPE, at N=20 (p=0.029). The "SMAS beats TPE 5W/1T/2L" headline from Exp 9 was driven by a favorable 8-dataset subset.</td>
