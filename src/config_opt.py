@@ -59,8 +59,8 @@ class ConfigProblem:
         self.oracle_median = float(np.median(d2h))
 
 
-def load_problem(fpath: str) -> ConfigProblem:
-    df = load_data(fpath)
+def _problem_from_df(df, name: str) -> ConfigProblem:
+    """Shared processing: drop constant config cols, normalize, compute d2h."""
     cols = df.columns
     y_cols = [c for c in cols if c.endswith(("-", "+"))]
     x_cols = [c for c in cols if not c.endswith(("-", "+"))]
@@ -68,12 +68,10 @@ def load_problem(fpath: str) -> ConfigProblem:
     # Drop constant config columns (zero variance → useless / NaN on normalize).
     x_keep = [c for c in x_cols if df[c].n_unique() > 1]
     X = df.select(x_keep).to_numpy().astype(float)
-    # Min-max normalize config dims to [0, 1].
     xmin, xmax = X.min(axis=0), X.max(axis=0)
     span = np.where(xmax > xmin, xmax - xmin, 1.0)
     X = (X - xmin) / span
 
-    # Per-objective "badness" in [0,1], 0 = heaven. Flip maximize objectives.
     badness = []
     for c in y_cols:
         v = df[c].to_numpy().astype(float)
@@ -82,10 +80,25 @@ def load_problem(fpath: str) -> ConfigProblem:
         if c.endswith("+"):
             nv = 1.0 - nv
         badness.append(nv)
-    B = np.vstack(badness)                     # (n_obj, n_pool)
-    d2h = np.sqrt(np.mean(B ** 2, axis=0))     # mean → comparable across n_obj
+    B = np.vstack(badness)
+    d2h = np.sqrt(np.mean(B ** 2, axis=0))
+    return ConfigProblem(name, X, d2h, len(y_cols))
 
-    return ConfigProblem(Path(fpath).stem, X, d2h, len(y_cols))
+
+def load_problem(fpath: str) -> ConfigProblem:
+    return _problem_from_df(load_data(fpath), Path(fpath).stem)
+
+
+def load_problem_combined(fpaths: list[str], name: str) -> ConfigProblem:
+    """Combine multiple CSVs that share a schema into a single ConfigProblem
+    (e.g., Health-ClosedIssues* files that are disjoint sampling sweeps of the
+    same configuration space)."""
+    import polars as pl
+    dfs = [load_data(p) for p in fpaths]
+    common = list(dfs[0].columns)
+    dfs = [d.select(common) for d in dfs]
+    df = pl.concat(dfs, how="vertical")
+    return _problem_from_df(df, name)
 
 
 # ── Shared helpers ───────────────────────────────────────────────────────────────

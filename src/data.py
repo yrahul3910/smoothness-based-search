@@ -5,7 +5,10 @@ from scipy.interpolate import griddata
 
 def load_data(file_path: str) -> pl.DataFrame:
     """Load data from a CSV file."""
-    df = pl.read_csv(file_path)
+    # infer_schema_length=0 forces polars to load every column as a string,
+    # avoiding "inferred i64 but value 1.00E+05 doesn't fit" errors on the
+    # SS/Health files. We then cast string→float below.
+    df = pl.read_csv(file_path, infer_schema_length=0)
     # Strip whitespace from column names (some CSVs use "col1, col2" with spaces)
     df = df.rename({c: c.strip() for c in df.columns})
     # Try to cast string columns to float; drop those that genuinely contain text
