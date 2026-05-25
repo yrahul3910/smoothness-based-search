@@ -124,7 +124,8 @@ def _init_reveal(p: ConfigProblem, rng: np.random.Generator):
     return revealed, seq
 
 
-def _surrogate_loop(p, rng, *, smoothness: bool, adaptive: bool) -> dict[int, float]:
+def _surrogate_loop(p, rng, *, smoothness: bool, adaptive: bool,
+                    kappa_base: float = UCB_KAPPA) -> dict[int, float]:
     """Shared loop for greedy / ings / smas.
 
     smoothness=False           → greedy (argmin predicted d2h)
@@ -165,7 +166,7 @@ def _surrogate_loop(p, rng, *, smoothness: bool, adaptive: bool) -> dict[int, fl
             al = 2.0 * u - u_neighbor
             min_dist = d_to_obs.min(axis=1)
 
-            kappa = UCB_KAPPA
+            kappa = kappa_base
             if adaptive:
                 dt = DecisionTreeRegressor(max_depth=8, min_samples_leaf=2)
                 dt.fit(X_obs, y_obs)
@@ -173,7 +174,7 @@ def _surrogate_loop(p, rng, *, smoothness: bool, adaptive: bool) -> dict[int, fl
                 beta_hist.append(beta)
                 if len(beta_hist) >= 3:
                     bz = (beta - np.mean(beta_hist)) / (np.std(beta_hist) + 1e-12)
-                    kappa = UCB_KAPPA * float(1.0 / (1.0 + np.exp(-bz)))  # rough⇒explore
+                    kappa = kappa_base * float(1.0 / (1.0 + np.exp(-bz)))  # rough⇒explore
             score = _zscore(al) + kappa * _zscore(min_dist)
             chosen = cand_idx[int(np.argmax(score))]
 
@@ -184,7 +185,8 @@ def _surrogate_loop(p, rng, *, smoothness: bool, adaptive: bool) -> dict[int, fl
 
 def m_greedy(p, rng): return _surrogate_loop(p, rng, smoothness=False, adaptive=False)
 def m_ings(p, rng):   return _surrogate_loop(p, rng, smoothness=True, adaptive=False)
-def m_smas(p, rng):   return _surrogate_loop(p, rng, smoothness=True, adaptive=True)
+def m_smas(p, rng, kappa_base: float = UCB_KAPPA):
+    return _surrogate_loop(p, rng, smoothness=True, adaptive=True, kappa_base=kappa_base)
 
 
 def m_tpe(p: ConfigProblem, rng: np.random.Generator) -> dict[int, float]:
