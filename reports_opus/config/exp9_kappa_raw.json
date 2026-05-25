@@ -11782,49 +11782,57 @@
       "pool": 1343,
       "dim": 3,
       "n_obj": 2,
-      "oracle_min": 0.0007473637588413625
+      "oracle_min": 0.0007473637588413625,
+      "oracle_median": 0.2015867029016714
     },
     "SS-B": {
       "pool": 206,
       "dim": 3,
       "n_obj": 2,
-      "oracle_min": 0.0008157727025445531
+      "oracle_min": 0.0008157727025445531,
+      "oracle_median": 0.5614237947764391
     },
     "SS-I": {
       "pool": 1080,
       "dim": 5,
       "n_obj": 2,
-      "oracle_min": 0.0
+      "oracle_min": 0.0,
+      "oracle_median": 0.3647547166278079
     },
     "SS-O": {
       "pool": 972,
       "dim": 10,
       "n_obj": 2,
-      "oracle_min": 0.12077900221083047
+      "oracle_min": 0.12077900221083047,
+      "oracle_median": 0.37116030243794407
     },
     "Apache_AllMeasurements": {
       "pool": 192,
       "dim": 8,
       "n_obj": 1,
-      "oracle_min": 0.0
+      "oracle_min": 0.0,
+      "oracle_median": 0.20833333333333334
     },
     "X264_AllMeasurements": {
       "pool": 1152,
       "dim": 13,
       "n_obj": 1,
-      "oracle_min": 0.0
+      "oracle_min": 0.0,
+      "oracle_median": 0.3609773026640334
     },
     "SQL_AllMeasurements": {
       "pool": 4653,
       "dim": 39,
       "n_obj": 1,
-      "oracle_min": 0.0
+      "oracle_min": 0.0,
+      "oracle_median": 0.44688536063154666
     },
     "HSMGP_num": {
       "pool": 3456,
       "dim": 12,
       "n_obj": 1,
-      "oracle_min": 0.0
+      "oracle_min": 0.0,
+      "oracle_median": 0.04939934156244508
     }
   },
   "kappas": [

@@ -124,9 +124,28 @@ def _fmt(vals):
     return f"{np.mean(vals):.3f} ± {np.std(vals):.3f}"
 
 
+def _win_score(d_best: float, d_star: float, d_zero: float) -> float:
+    """Normalized win score (Chen et al. MOOT convention):
+       score = 100 · (1 − (d_best − d*) / (d₀ − d*))
+       d* = reference optimum (pool min); d₀ = baseline (pool median).
+       100 = found the reference optimum; 0 = no better than a random pick (median);
+       <0 = worse than random."""
+    denom = d_zero - d_star
+    if denom < 1e-12:
+        return float("nan")
+    return 100.0 * (1.0 - (d_best - d_star) / denom)
+
+
 def gen_report(payload: dict, runtime: float) -> str:
     results, meta, n_rep = payload["results"], payload["meta"], payload["n_repeats"]
     ds_list = [d for d in DATASETS if d in results]
+
+    def win_at(m: str, b: int, ds: str) -> list[float]:
+        d_star = meta[ds]["oracle_min"]; d_zero = meta[ds]["oracle_median"]
+        return [_win_score(d, d_star, d_zero) for d in results[ds][m][b]]
+
+    def mean_win(m: str, b: int) -> float:
+        return float(np.mean([np.mean(win_at(m, b, ds)) for ds in ds_list]))
 
     # Per-dataset table at PRIMARY_BUDGET, colored vs TPE.
     def table_at(budget: int) -> str:
@@ -180,6 +199,65 @@ def gen_report(payload: dict, runtime: float) -> str:
 
     curves = "".join(f'<img src="exp9_{ds}.png" alt="{ds} convergence">' for ds in ds_list)
 
+    # ── Normalized win score (Chen et al. MOOT convention) ─────────────────────
+    # Per-dataset table at PRIMARY_BUDGET, color vs TPE.
+    win_rows = []
+    for ds in ds_list:
+        per_ds_means = {m: float(np.mean(win_at(m, PRIMARY_BUDGET, ds))) for m in METHOD_ORDER}
+        best_m = max(METHOD_ORDER, key=lambda m: per_ds_means[m])
+        cells = ""
+        for m in METHOD_ORDER:
+            cls = ""
+            if m != "tpe":
+                # Win-score wins are *higher*, so flip Mann-Whitney direction.
+                from scipy.stats import mannwhitneyu as _mw
+                a = np.array(win_at(m, PRIMARY_BUDGET, ds))
+                t = np.array(win_at("tpe", PRIMARY_BUDGET, ds))
+                if np.allclose(a, t):
+                    verd = "tie"
+                else:
+                    try:
+                        _, pv = _mw(a, t, alternative="greater")
+                        if pv < 0.05: verd = "win"
+                        elif np.median(a) >= np.median(t): verd = "tie"
+                        else: verd = "loss"
+                    except Exception:
+                        verd = "tie"
+                cls = f' class="{verd}"'
+            b0, b1 = ("<b>", "</b>") if m == best_m else ("", "")
+            cells += f"<td{cls}>{b0}{per_ds_means[m]:.1f}{b1}</td>"
+        win_rows.append(f"<tr><td><b>{ds}</b></td>{cells}</tr>")
+    win_table = ("<table><tr><th>Dataset</th>"
+                 + "".join(f"<th>{METHOD_LABELS[m]}</th>" for m in METHOD_ORDER)
+                 + "</tr>" + "".join(win_rows) + "</table>")
+
+    # Aggregate per-method mean win score across budgets.
+    agg_rows = ""
+    for m in METHOD_ORDER:
+        cells = "".join(f"<td>{mean_win(m, b):.1f}</td>" for b in BUDGETS)
+        agg_rows += f"<tr><td>{METHOD_LABELS[m]}</td>{cells}</tr>"
+    win_agg = (f"<table><tr><th>Method</th>"
+               + "".join(f"<th>N={b}</th>" for b in BUDGETS)
+               + f"</tr>{agg_rows}</table>")
+
+    # Paired Wilcoxon (1-sided, greater) vs TPE on per-dataset mean win scores.
+    win_paired_rows = ""
+    for m in ("smas", "ings", "greedy", "random"):
+        cells = ""
+        for b in BUDGETS:
+            a = np.array([np.mean(win_at(m, b, ds)) for ds in ds_list])
+            t = np.array([np.mean(win_at("tpe", b, ds)) for ds in ds_list])
+            try:
+                _, pv = wilcoxon(a, t, alternative="greater")
+            except Exception:
+                pv = float("nan")
+            sig = " win" if pv < 0.05 else ""
+            cells += f"<td>p={pv:.3f}{sig}</td>"
+        win_paired_rows += f"<tr><td>{METHOD_LABELS[m]} vs TPE</td>{cells}</tr>"
+    win_paired_table = (f"<table><tr><th>Comparison</th>"
+                        + "".join(f"<th>N={b}</th>" for b in BUDGETS)
+                        + f"</tr>{win_paired_rows}</table>")
+
     # Aggregate headline numbers at primary budget.
     def mean_at(m, b):
         return np.mean([np.mean(results[ds][m][b]) for ds in ds_list])
@@ -226,11 +304,36 @@ out. TPE is kept as the SOTA optimizer.
 <b>Bold</b> = best per dataset. "oracle min" = the best d2h in the whole pool (the floor).</p>
 {table_at(PRIMARY_BUDGET)}
 
-<h2>4. Convergence curves (best d2h vs budget)</h2>
+<h2>4. Normalized win score (Chen et al. MOOT convention)</h2>
+<div class="box">
+For each dataset, let <i>d*</i> = reference optimum (pool minimum d2h) and
+<i>d<sub>0</sub></i> = baseline (pool median d2h). The win score normalizes
+the best d2h found against this gap:
+<div style="text-align:center;margin:8px 0">
+<code>score = 100 · (1 − (d2h(best) − d*) / (d<sub>0</sub> − d*))</code>
+</div>
+<b>100</b> = found the reference optimum; <b>50</b> = closed half the gap;
+<b>0</b> = no better than a random pick (median); negative = worse than random.
+Higher is better.
+</div>
+<p><b>Per-dataset mean win score at N={PRIMARY_BUDGET}.</b> Cell color vs <b>TPE</b>
+(green = significantly higher, yellow = tie, red = lower; Mann-Whitney U one-sided, α=0.05).
+<b>Bold</b> = best per dataset.</p>
+{win_table}
+
+<p><b>Mean win score across the 8 datasets, per method × budget.</b></p>
+{win_agg}
+
+<p><b>Paired Wilcoxon (one-sided, method &gt; TPE) on per-dataset mean win scores.</b>
+This is the win-score analog of the d2h Mann-Whitney tests in Section 6 — same comparison,
+different (and more interpretable across datasets) metric.</p>
+{win_paired_table}
+
+<h2>5. Convergence curves (best d2h vs budget)</h2>
 <p>Error bars = SEM over {n_rep} repeats; dotted green = oracle floor.</p>
 <div>{curves}</div>
 
-<h2>5. Win/Tie/Loss across budgets</h2>
+<h2>6. Win/Tie/Loss across budgets (d2h-based)</h2>
 <p>Key ablation: do the smoothness-aware methods beat the no-smoothness <b>Greedy</b> surrogate, and stay competitive with <b>TPE</b>?</p>
 <table>
 <tr><th>Comparison</th>{''.join(f'<th>N={b}</th>' for b in BUDGETS)}</tr>
@@ -248,6 +351,13 @@ and the margin over Greedy <i>grows with budget</i>
 Mean d2h at N={PRIMARY_BUDGET}: SMAS {mean_at('smas', PRIMARY_BUDGET):.3f},
 INGS {mean_at('ings', PRIMARY_BUDGET):.3f}, TPE {mean_at('tpe', PRIMARY_BUDGET):.3f},
 Greedy {mean_at('greedy', PRIMARY_BUDGET):.3f}, Random {mean_at('random', PRIMARY_BUDGET):.3f}.
+<br><br>
+<b>Normalized win scores at N={PRIMARY_BUDGET}</b> (% of the median-to-oracle gap closed; 100 = found the reference optimum):
+SMAS <b>{mean_win('smas', PRIMARY_BUDGET):.1f}</b>,
+INGS <b>{mean_win('ings', PRIMARY_BUDGET):.1f}</b>,
+Greedy {mean_win('greedy', PRIMARY_BUDGET):.1f},
+Random {mean_win('random', PRIMARY_BUDGET):.1f},
+TPE {mean_win('tpe', PRIMARY_BUDGET):.1f}. See Section 4 for the full metric and paired tests.
 </div>
 
 <div class="box" style="border-left-color:#d4a017;background:#fef9e7">
@@ -262,7 +372,7 @@ core (which INGS already has), <i>not</i> from the SMAS-specific β-controller.
 INGS is the simpler method that achieves the result.
 </div>
 
-<h2>6. Discussion</h2>
+<h2>7. Discussion</h2>
 <p>
 <b>Smoothness exploitation transfers to config space.</b> Both INGS and SMAS improve over
 the plain Greedy surrogate (which only chases the lowest predicted d2h), confirming that

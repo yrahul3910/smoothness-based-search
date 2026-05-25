@@ -53,11 +53,36 @@ out. TPE is kept as the SOTA optimizer.
 <b>Bold</b> = best per dataset. "oracle min" = the best d2h in the whole pool (the floor).</p>
 <table><tr><th>Dataset</th><th>oracle min</th><th>SMAS (smoothness-adaptive)</th><th>INGS (smoothness-aware)</th><th>Greedy surrogate</th><th>TPE</th><th>Random</th></tr><tr><td><b>SS-A</b></td><td class='muted'>0.001</td><td class="win"><b>0.038 ± 0.029</b></td><td class="win">0.042 ± 0.032</td><td class="win">0.055 ± 0.039</td><td>0.111 ± 0.095</td><td class="win">0.046 ± 0.024</td></tr><tr><td><b>SS-B</b></td><td class='muted'>0.001</td><td class="win"><b>0.001 ± 0.000</b></td><td class="win">0.001 ± 0.000</td><td class="win">0.001 ± 0.000</td><td>0.191 ± 0.095</td><td class="win">0.157 ± 0.081</td></tr><tr><td><b>SS-I</b></td><td class='muted'>0.000</td><td class="win">0.051 ± 0.091</td><td class="win"><b>0.050 ± 0.092</b></td><td class="win">0.115 ± 0.117</td><td>0.152 ± 0.104</td><td class="win">0.094 ± 0.086</td></tr><tr><td><b>SS-O</b></td><td class='muted'>0.121</td><td class="win"><b>0.139 ± 0.021</b></td><td class="loss">0.145 ± 0.025</td><td class="loss">0.173 ± 0.047</td><td>0.153 ± 0.037</td><td class="loss">0.178 ± 0.038</td></tr><tr><td><b>Apache_AllMeasurements</b></td><td class='muted'>0.000</td><td class="loss">0.010 ± 0.009</td><td class="loss">0.011 ± 0.010</td><td class="tie">0.008 ± 0.011</td><td><b>0.007 ± 0.012</b></td><td class="loss">0.023 ± 0.018</td></tr><tr><td><b>X264_AllMeasurements</b></td><td class='muted'>0.000</td><td class="win">0.005 ± 0.010</td><td class="win"><b>0.002 ± 0.006</b></td><td class="loss">0.044 ± 0.072</td><td>0.007 ± 0.011</td><td class="loss">0.010 ± 0.010</td></tr><tr><td><b>SQL_AllMeasurements</b></td><td class='muted'>0.000</td><td class="loss">0.163 ± 0.043</td><td class="loss">0.167 ± 0.037</td><td class="loss">0.145 ± 0.041</td><td><b>0.130 ± 0.058</b></td><td class="loss">0.144 ± 0.040</td></tr><tr><td><b>HSMGP_num</b></td><td class='muted'>0.000</td><td class="win">0.001 ± 0.001</td><td class="win"><b>0.001 ± 0.001</b></td><td class="win">0.002 ± 0.002</td><td>0.004 ± 0.003</td><td class="loss">0.007 ± 0.006</td></tr></table>
 
-<h2>4. Convergence curves (best d2h vs budget)</h2>
+<h2>4. Normalized win score (Chen et al. MOOT convention)</h2>
+<div class="box">
+For each dataset, let <i>d*</i> = reference optimum (pool minimum d2h) and
+<i>d<sub>0</sub></i> = baseline (pool median d2h). The win score normalizes
+the best d2h found against this gap:
+<div style="text-align:center;margin:8px 0">
+<code>score = 100 · (1 − (d2h(best) − d*) / (d<sub>0</sub> − d*))</code>
+</div>
+<b>100</b> = found the reference optimum; <b>50</b> = closed half the gap;
+<b>0</b> = no better than a random pick (median); negative = worse than random.
+Higher is better.
+</div>
+<p><b>Per-dataset mean win score at N=30.</b> Cell color vs <b>TPE</b>
+(green = significantly higher, yellow = tie, red = lower; Mann-Whitney U one-sided, α=0.05).
+<b>Bold</b> = best per dataset.</p>
+<table><tr><th>Dataset</th><th>SMAS (smoothness-adaptive)</th><th>INGS (smoothness-aware)</th><th>Greedy surrogate</th><th>TPE</th><th>Random</th></tr><tr><td><b>SS-A</b></td><td class="win"><b>81.7</b></td><td class="win">79.2</td><td class="win">73.2</td><td>45.0</td><td class="win">77.4</td></tr><tr><td><b>SS-B</b></td><td class="win"><b>100.0</b></td><td class="win">100.0</td><td class="win">100.0</td><td>66.1</td><td class="win">72.1</td></tr><tr><td><b>SS-I</b></td><td class="win">86.1</td><td class="win"><b>86.4</b></td><td class="win">68.5</td><td>58.2</td><td class="win">74.3</td></tr><tr><td><b>SS-O</b></td><td class="win"><b>92.8</b></td><td class="loss">90.2</td><td class="loss">79.1</td><td>87.1</td><td class="loss">77.0</td></tr><tr><td><b>Apache_AllMeasurements</b></td><td class="loss">95.0</td><td class="loss">94.6</td><td class="tie">96.3</td><td><b>96.6</b></td><td class="loss">89.0</td></tr><tr><td><b>X264_AllMeasurements</b></td><td class="win">98.7</td><td class="win"><b>99.4</b></td><td class="loss">87.9</td><td>97.9</td><td class="loss">97.2</td></tr><tr><td><b>SQL_AllMeasurements</b></td><td class="loss">63.4</td><td class="loss">62.6</td><td class="loss">67.5</td><td><b>71.0</b></td><td class="loss">67.7</td></tr><tr><td><b>HSMGP_num</b></td><td class="win">97.7</td><td class="win"><b>98.2</b></td><td class="win">95.4</td><td>92.8</td><td class="loss">85.4</td></tr></table>
+
+<p><b>Mean win score across the 8 datasets, per method × budget.</b></p>
+<table><tr><th>Method</th><th>N=10</th><th>N=20</th><th>N=30</th><th>N=50</th></tr><tr><td>SMAS (smoothness-adaptive)</td><td>73.2</td><td>85.0</td><td>89.4</td><td>93.6</td></tr><tr><td>INGS (smoothness-aware)</td><td>71.5</td><td>83.9</td><td>88.8</td><td>93.2</td></tr><tr><td>Greedy surrogate</td><td>70.7</td><td>80.5</td><td>83.5</td><td>86.2</td></tr><tr><td>TPE</td><td>58.7</td><td>70.8</td><td>76.9</td><td>83.4</td></tr><tr><td>Random</td><td>64.7</td><td>74.8</td><td>80.0</td><td>85.5</td></tr></table>
+
+<p><b>Paired Wilcoxon (one-sided, method &gt; TPE) on per-dataset mean win scores.</b>
+This is the win-score analog of the d2h Mann-Whitney tests in Section 6 — same comparison,
+different (and more interpretable across datasets) metric.</p>
+<table><tr><th>Comparison</th><th>N=10</th><th>N=20</th><th>N=30</th><th>N=50</th></tr><tr><td>SMAS (smoothness-adaptive) vs TPE</td><td>p=0.191</td><td>p=0.055</td><td>p=0.074</td><td>p=0.039 win</td></tr><tr><td>INGS (smoothness-aware) vs TPE</td><td>p=0.230</td><td>p=0.055</td><td>p=0.074</td><td>p=0.074</td></tr><tr><td>Greedy surrogate vs TPE</td><td>p=0.371</td><td>p=0.191</td><td>p=0.273</td><td>p=0.422</td></tr><tr><td>Random vs TPE</td><td>p=0.578</td><td>p=0.473</td><td>p=0.527</td><td>p=0.578</td></tr></table>
+
+<h2>5. Convergence curves (best d2h vs budget)</h2>
 <p>Error bars = SEM over 50 repeats; dotted green = oracle floor.</p>
 <div><img src="exp9_SS-A.png" alt="SS-A convergence"><img src="exp9_SS-B.png" alt="SS-B convergence"><img src="exp9_SS-I.png" alt="SS-I convergence"><img src="exp9_SS-O.png" alt="SS-O convergence"><img src="exp9_Apache_AllMeasurements.png" alt="Apache_AllMeasurements convergence"><img src="exp9_X264_AllMeasurements.png" alt="X264_AllMeasurements convergence"><img src="exp9_SQL_AllMeasurements.png" alt="SQL_AllMeasurements convergence"><img src="exp9_HSMGP_num.png" alt="HSMGP_num convergence"></div>
 
-<h2>5. Win/Tie/Loss across budgets</h2>
+<h2>6. Win/Tie/Loss across budgets (d2h-based)</h2>
 <p>Key ablation: do the smoothness-aware methods beat the no-smoothness <b>Greedy</b> surrogate, and stay competitive with <b>TPE</b>?</p>
 <table>
 <tr><th>Comparison</th><th>N=10</th><th>N=20</th><th>N=30</th><th>N=50</th></tr>
@@ -75,6 +100,13 @@ and the margin over Greedy <i>grows with budget</i>
 Mean d2h at N=30: SMAS 0.051,
 INGS 0.052, TPE 0.094,
 Greedy 0.068, Random 0.083.
+<br><br>
+<b>Normalized win scores at N=30</b> (% of the median-to-oracle gap closed; 100 = found the reference optimum):
+SMAS <b>89.4</b>,
+INGS <b>88.8</b>,
+Greedy 83.5,
+Random 80.0,
+TPE 76.9. See Section 4 for the full metric and paired tests.
 </div>
 
 <div class="box" style="border-left-color:#d4a017;background:#fef9e7">
@@ -89,7 +121,7 @@ core (which INGS already has), <i>not</i> from the SMAS-specific β-controller.
 INGS is the simpler method that achieves the result.
 </div>
 
-<h2>6. Discussion</h2>
+<h2>7. Discussion</h2>
 <p>
 <b>Smoothness exploitation transfers to config space.</b> Both INGS and SMAS improve over
 the plain Greedy surrogate (which only chases the lowest predicted d2h), confirming that
