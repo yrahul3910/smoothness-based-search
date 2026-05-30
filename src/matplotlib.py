@@ -88,7 +88,7 @@ def plot_smooth_surface(
     plt.close()
 
 
-def plot_filled_contour_surface(x_pca, z_values, filename="plots/contour_surface.png"):
+def plot_filled_contour_surface(x_pca, z_values, filename="plots/contour_surface.png") -> None:
     """Create a filled contour surface plot."""
     fig = plt.figure(figsize=(14, 10))
     ax1 = fig.add_subplot(121, projection="3d")
@@ -134,7 +134,7 @@ def plot_filled_contour_surface(x_pca, z_values, filename="plots/contour_surface
     plt.close()
 
 
-def plot_gradient_surface(x_pca, z_values, filename="gradient_surface.png"):
+def plot_gradient_surface(x_pca, z_values, filename="gradient_surface.png") -> None:
     """Create a surface plot with gradient visualization."""
     fig = plt.figure(figsize=(12, 9))
     ax = fig.add_subplot(111, projection="3d")
@@ -151,7 +151,7 @@ def plot_gradient_surface(x_pca, z_values, filename="gradient_surface.png"):
         fill_value=0,
     )
     dy, dx = np.gradient(Zi)
-    surf = ax.plot_surface(
+    ax.plot_surface(
         Xi,
         Yi,
         Zi,

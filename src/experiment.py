@@ -39,6 +39,13 @@ DEFAULT_HPO_SPACE = {
         "max_features": ["sqrt", "log2", 2, 3, 4, 5],
         "transform": ["normalize", "standardize", "minmax", "maxabs"],
     },
+    "svr": {
+        "kernel": ["linear", "poly", "rbf", "sigmoid"],
+        "C": [0.1, 1, 10, 100],
+        "epsilon": [0.01, 0.1, 1],
+        "degree": [2, 3, 4, 5],
+        "transform": ["normalize", "standardize", "minmax", "maxabs"],
+    },
 }
 
 DEFAULT_LEARNERS = {
@@ -57,11 +64,16 @@ class SingleResult:
     score: float
 
 
+type HPOSpace = dict[str, dict[str, list[Any]]]
+type RawResults = dict[str, list[list[float]]]
+type MetricFn = Callable[[np.ndarray, np.ndarray], float]
+
+
 @dataclass
 class ExperimentResult:
     """Metrics from an experiment."""
 
-    raw_results: dict[str, list[list[float]]]
+    raw_results: RawResults
     """Raw results mapping filenames to lists of scores per config."""
 
     mean_results: pl.DataFrame
@@ -74,17 +86,27 @@ class ExperimentResult:
     """Best results per filename."""
 
 
-type HPOSpace = dict[str, dict[str, list[Any]]]
-type RawResults = dict[str, list[list[float]]]
-type MetricFn = Callable[[np.ndarray, np.ndarray], float]
-
-
 def random_experiment(
     orig_data: Data,
     hpo_space: HPOSpace,
     learners: dict[str, type],
     metrics: list[MetricFn],
 ) -> list[float]:
+    """Run a random search experiment over the given hyperparameter space and learners.
+
+    This function performs a random search over the specified hyperparameter space for each learner,
+    evaluating their performance using the provided metrics.
+
+    Args:
+        orig_data (Data): The original data to use for training and testing.
+        hpo_space (HPOSpace): The hyperparameter space for each learner.
+        learners (dict[str, type]): The learners to optimize.
+        metrics (list[MetricFn]): The metrics to evaluate the learners.
+
+    Returns:
+        list[float]: The best metric scores achieved during the experiment.
+
+    """
     best_configs = []
     best_learners = []
     num_configs = 50
@@ -159,7 +181,12 @@ def run_experiment(
         raise ValueError(msg)
 
     if experiment_fn is None:
-        experiment_fn = partial(random_experiment, hpo_space=hpo_space, learners=learners, metrics=metrics)
+        experiment_fn = partial(
+            random_experiment,
+            hpo_space=hpo_space,
+            learners=learners,
+            metrics=metrics,
+        )
 
     files = list(itertools.chain.from_iterable(Path(d).rglob("*.csv") for d in dirs))
     full_results = {"dataset": []} | {k: [] for k in metrics}
@@ -175,7 +202,9 @@ def run_experiment(
         )
 
         x, y = create_surface_data(data_orig, pca=False)
-        preprocessed_data = Data(*train_test_split(x, y, test_size=0.2, random_state=42))
+        preprocessed_data = Data(
+            *train_test_split(x, y, test_size=0.2, random_state=42),
+        )
         full_results["dataset"].append(filename)
 
         for i in tqdm(range(n_repeats)):
@@ -199,7 +228,10 @@ def run_experiment(
     metric_names = [fn.__name__ for fn in metrics]
     df = pl.DataFrame(list(full_results.values()), schema=["dataset", *metric_names])
 
-    processed_result = df.with_columns(pl.col("dataset"), *[pl.col(col).round(2) for col in metric_names])
+    processed_result = df.with_columns(
+        pl.col("dataset"),
+        *[pl.col(col).round(2) for col in metric_names],
+    )
 
     return ExperimentResult(
         raw_results=raw_results,

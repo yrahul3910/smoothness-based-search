@@ -31,5 +31,6 @@ target-version = "py312"
 select = ["ALL"]
 ignore = [
     "S311",
-    "T201"
+    "T201",
+    "N806"
 ]
