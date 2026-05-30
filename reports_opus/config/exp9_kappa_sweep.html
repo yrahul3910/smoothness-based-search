@@ -1,0 +1,106 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Exp 9b: SMAS κ_base Sensitivity Analysis</title>
+<style>
+body { font-family: Georgia, serif; max-width: 1150px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+h1,h2,h3 { color: #2c3e50; }
+table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 0.86em; }
+th,td { border: 1px solid #ccc; padding: 6px 9px; text-align: center; }
+th { background: #2c3e50; color: white; }
+td.dsname { text-align: left; font-weight: bold; }
+code { background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-size: 0.88em; }
+.box { background: #eef6fb; border-left: 4px solid #3498db; padding: 12px 16px; margin: 16px 0; }
+.win-box { background: #eafaf1; border-left: 4px solid #27ae60; padding: 12px 16px; margin: 16px 0; }
+.amber-box { background: #fef9e7; border-left: 4px solid #d4a017; padding: 12px 16px; margin: 16px 0; }
+.muted { color: #777; font-size: 0.9em; }
+img { max-width: 49%; margin: 4px 0; vertical-align: top; border: 1px solid #eee; }
+pre { background: #f8f8f8; padding: 10px; border-radius: 4px; font-size: 0.86em; }
+.best { background: #d4edda; font-weight: bold; }
+.default { background: #fff3cd; }
+</style></head><body>
+
+<h1>Experiment 9b: SMAS sensitivity to κ<sub>base</sub></h1>
+<p class="muted">Date: 2026-05-25 · 8 config datasets × 50 repeats ·
+budgets [10, 20, 30, 50] · κ_base sweep [0.0, 0.05, 0.1, 0.15, 0.25, 0.5, 1.0] · runtime 9.1 min ·
+<a href="exp9_config_opt.html">↩ back to Exp 9</a></p>
+
+<h2>1. Question</h2>
+<p>
+Exp 9 (50 repeats) showed SMAS ≈ INGS at the default <code>κ_base = 0.15</code>,
+implying the β-controller adds no significant value. This experiment asks the
+follow-up: <b>is SMAS sensitive to κ_base?</b> Three possibilities:
+</p>
+<ol>
+  <li><i>Default well-tuned</i> — quality is flat across κ_base. The β-controller
+  doesn't matter because no κ does.</li>
+  <li><i>Default badly-tuned</i> — some other κ_base would substantially improve
+  SMAS, and the Exp-9 conclusion (β-controller adds nothing) was confounded by a
+  poor κ choice rather than the controller itself.</li>
+  <li><i>Different κ for different datasets</i> — κ_base interacts with landscape
+  structure; no single value dominates.</li>
+</ol>
+<div class="box"><b>Setup.</b> SMAS only, 8 datasets, 50 repeats, κ_base sweep
+over [0.0, 0.05, 0.1, 0.15, 0.25, 0.5, 1.0]. Same seeds across κ values per dataset (paired comparison).
+κ=0 ⇒ no exploration (acquisition reduces to anti-Laplacian only); κ=1 ⇒ very
+aggressive max-exploration (sigmoid(z(β)) ranges in (0,1), so κ_eff ∈ (0, κ_base)).</div>
+
+<h2>2. Mean d2h at N=30 per dataset (lower better)</h2>
+<p>Cell shading: <span class="best">green</span> = best κ for that dataset;
+<span class="default">yellow</span> = the Exp-9 default κ=0.15 when it's not best.</p>
+<table><tr><th>Dataset</th><th>κ=0.0</th><th>κ=0.05</th><th>κ=0.1</th><th>κ=0.15</th><th>κ=0.25</th><th>κ=0.5</th><th>κ=1.0</th></tr><tr><td class='dsname'>SS-A</td><td>0.035<br><span class='muted'>±0.032</span></td><td class="best">0.029<br><span class='muted'>±0.026</span></td><td>0.034<br><span class='muted'>±0.030</span></td><td class="default">0.035<br><span class='muted'>±0.031</span></td><td>0.036<br><span class='muted'>±0.026</span></td><td>0.039<br><span class='muted'>±0.029</span></td><td>0.055<br><span class='muted'>±0.027</span></td></tr><tr><td class='dsname'>SS-B</td><td class="best">0.001<br><span class='muted'>±0.000</span></td><td>0.001<br><span class='muted'>±0.000</span></td><td>0.005<br><span class='muted'>±0.031</span></td><td class="default">0.001<br><span class='muted'>±0.000</span></td><td>0.001<br><span class='muted'>±0.000</span></td><td>0.001<br><span class='muted'>±0.000</span></td><td>0.001<br><span class='muted'>±0.000</span></td></tr><tr><td class='dsname'>SS-I</td><td>0.061<br><span class='muted'>±0.100</span></td><td>0.056<br><span class='muted'>±0.096</span></td><td>0.074<br><span class='muted'>±0.107</span></td><td class="default">0.065<br><span class='muted'>±0.102</span></td><td class="best">0.050<br><span class='muted'>±0.090</span></td><td>0.067<br><span class='muted'>±0.099</span></td><td>0.071<br><span class='muted'>±0.093</span></td></tr><tr><td class='dsname'>SS-O</td><td>0.149<br><span class='muted'>±0.034</span></td><td>0.153<br><span class='muted'>±0.038</span></td><td>0.153<br><span class='muted'>±0.039</span></td><td class="default">0.148<br><span class='muted'>±0.033</span></td><td>0.143<br><span class='muted'>±0.026</span></td><td>0.147<br><span class='muted'>±0.019</span></td><td class="best">0.142<br><span class='muted'>±0.020</span></td></tr><tr><td class='dsname'>Apache_AllMeasurements</td><td class="best">0.008<br><span class='muted'>±0.008</span></td><td>0.008<br><span class='muted'>±0.008</span></td><td>0.009<br><span class='muted'>±0.009</span></td><td class="default">0.009<br><span class='muted'>±0.009</span></td><td>0.010<br><span class='muted'>±0.009</span></td><td>0.010<br><span class='muted'>±0.009</span></td><td>0.012<br><span class='muted'>±0.012</span></td></tr><tr><td class='dsname'>X264_AllMeasurements</td><td>0.005<br><span class='muted'>±0.010</span></td><td>0.006<br><span class='muted'>±0.010</span></td><td>0.006<br><span class='muted'>±0.008</span></td><td class="default">0.004<br><span class='muted'>±0.008</span></td><td>0.004<br><span class='muted'>±0.008</span></td><td>0.003<br><span class='muted'>±0.006</span></td><td class="best">0.001<br><span class='muted'>±0.002</span></td></tr><tr><td class='dsname'>SQL_AllMeasurements</td><td>0.153<br><span class='muted'>±0.043</span></td><td>0.154<br><span class='muted'>±0.044</span></td><td>0.154<br><span class='muted'>±0.041</span></td><td class="default">0.158<br><span class='muted'>±0.043</span></td><td>0.160<br><span class='muted'>±0.042</span></td><td class="best">0.150<br><span class='muted'>±0.044</span></td><td>0.159<br><span class='muted'>±0.047</span></td></tr><tr><td class='dsname'>HSMGP_num</td><td>0.001<br><span class='muted'>±0.001</span></td><td>0.001<br><span class='muted'>±0.002</span></td><td>0.001<br><span class='muted'>±0.002</span></td><td class="default">0.001<br><span class='muted'>±0.002</span></td><td>0.001<br><span class='muted'>±0.003</span></td><td>0.001<br><span class='muted'>±0.001</span></td><td class="best">0.001<br><span class='muted'>±0.001</span></td></tr></table>
+
+<h2>3. Mean d2h across all datasets, per budget × κ</h2>
+<table>
+<tr><th>Budget</th><th>κ=0.0</th><th>κ=0.05</th><th>κ=0.1</th><th>κ=0.15</th><th>κ=0.25</th><th>κ=0.5</th><th>κ=1.0</th></tr>
+<tr><td><b>N=10</b></td><td>0.1044</td><td>0.1045</td><td>0.1049</td><td class="default">0.1059</td><td>0.1025</td><td class="best">0.1020</td><td>0.1086</td></tr><tr><td><b>N=20</b></td><td>0.0690</td><td>0.0685</td><td>0.0681</td><td class="default">0.0690</td><td class="best">0.0672</td><td>0.0674</td><td>0.0692</td></tr><tr><td><b>N=30</b></td><td>0.0515</td><td>0.0511</td><td>0.0543</td><td class="default">0.0527</td><td class="best">0.0507</td><td>0.0522</td><td>0.0552</td></tr><tr><td><b>N=50</b></td><td>0.0416</td><td>0.0411</td><td>0.0425</td><td class="default">0.0395</td><td>0.0397</td><td class="best">0.0389</td><td>0.0392</td></tr>
+</table>
+
+<h2>4. Paired Wilcoxon p-value vs default κ=0.15 (two-sided, per-dataset means)</h2>
+<p>Each cell tests whether the indicated κ produces significantly different per-dataset means
+than the default. Low p ⇒ that κ is statistically distinguishable from the default.</p>
+<table>
+<tr><th>Budget</th><th>κ=0.0</th><th>κ=0.05</th><th>κ=0.1</th><th>κ=0.15</th><th>κ=0.25</th><th>κ=0.5</th><th>κ=1.0</th></tr>
+<tr><td><b>N=10</b></td><td>0.641</td><td>0.312</td><td>0.383</td><td>—</td><td>0.312</td><td>0.461</td><td>0.945</td></tr><tr><td><b>N=20</b></td><td>0.844</td><td>0.945</td><td>0.812</td><td>—</td><td>0.844</td><td>0.844</td><td>0.844</td></tr><tr><td><b>N=30</b></td><td>0.297</td><td>0.469</td><td>0.461</td><td>—</td><td>0.938</td><td>1.000</td><td>0.578</td></tr><tr><td><b>N=50</b></td><td>0.219</td><td>0.297</td><td>0.156</td><td>—</td><td>0.578</td><td>0.469</td><td>0.938</td></tr>
+</table>
+
+<h2>5. Normalized win scores (Chen et al. MOOT convention)</h2>
+<div class="box">
+<code>score = 100 · (1 − (d2h(best) − d*) / (d<sub>0</sub> − d*))</code> where
+<i>d*</i> = pool min d2h and <i>d<sub>0</sub></i> = pool median d2h (both
+computed over the full CSV, not the sampled rows). 100 = found the reference
+optimum; 0 = no better than a random pick. Higher is better.
+</div>
+<p><b>Per-dataset mean win score at N=30 (by κ_base).</b></p>
+<table><tr><th>Dataset</th><th>κ=0.0</th><th>κ=0.05</th><th>κ=0.1</th><th>κ=0.15</th><th>κ=0.25</th><th>κ=0.5</th><th>κ=1.0</th></tr><tr><td class='dsname'>SS-A</td><td>83.2</td><td class="best">85.9</td><td>83.7</td><td class="default">83.0</td><td>82.6</td><td>80.9</td><td>73.1</td></tr><tr><td class='dsname'>SS-B</td><td class="best">100.0</td><td>100.0</td><td>99.2</td><td class="default">100.0</td><td>100.0</td><td>100.0</td><td>100.0</td></tr><tr><td class='dsname'>SS-I</td><td>83.3</td><td>84.6</td><td>79.8</td><td class="default">82.3</td><td class="best">86.2</td><td>81.7</td><td>80.4</td></tr><tr><td class='dsname'>SS-O</td><td>88.8</td><td>87.0</td><td>87.3</td><td class="default">89.1</td><td>90.9</td><td>89.4</td><td class="best">91.6</td></tr><tr><td class='dsname'>Apache_AllMeasurements</td><td class="best">96.2</td><td>96.0</td><td>95.8</td><td class="default">95.5</td><td>95.0</td><td>95.0</td><td>94.4</td></tr><tr><td class='dsname'>X264_AllMeasurements</td><td>98.5</td><td>98.3</td><td>98.4</td><td class="default">98.9</td><td>98.8</td><td>99.3</td><td class="best">99.7</td></tr><tr><td class='dsname'>SQL_AllMeasurements</td><td>65.8</td><td>65.6</td><td>65.6</td><td class="default">64.5</td><td>64.3</td><td class="best">66.5</td><td>64.4</td></tr><tr><td class='dsname'>HSMGP_num</td><td>98.1</td><td>97.7</td><td>97.5</td><td class="default">97.8</td><td>97.4</td><td>98.3</td><td class="best">98.5</td></tr></table>
+<p><b>Mean win score across the 8 datasets, per κ × budget.</b></p>
+<table><tr><th>Budget</th><th>κ=0.0</th><th>κ=0.05</th><th>κ=0.1</th><th>κ=0.15</th><th>κ=0.25</th><th>κ=0.5</th><th>κ=1.0</th></tr><tr><td><b>N=10</b></td><td>70.6</td><td>70.8</td><td>70.6</td><td class="default">70.1</td><td>70.8</td><td class="best">70.9</td><td>70.4</td></tr><tr><td><b>N=20</b></td><td>83.8</td><td class="best">84.0</td><td>83.9</td><td class="default">83.6</td><td>83.7</td><td>83.4</td><td>82.5</td></tr><tr><td><b>N=30</b></td><td>89.2</td><td>89.4</td><td>88.4</td><td class="default">88.9</td><td class="best">89.4</td><td>88.9</td><td>87.8</td></tr><tr><td><b>N=50</b></td><td>92.9</td><td>92.9</td><td>92.5</td><td class="default">93.4</td><td>93.4</td><td>93.6</td><td class="best">93.6</td></tr></table>
+<p class="muted">A win-score view of the same data as Sections 2–3. Aggregate
+win scores cluster tightly across κ — typical range ≤ 2 points, far below the
+~10-point per-dataset variation — reinforcing the aggregate-insensitivity
+finding from the d2h tables.</p>
+
+<h2>6. Convergence curves per dataset</h2>
+<p>One line per κ_base; the default κ=0.15 is drawn solid + thick. SEM error bars.</p>
+<div><img src="exp9_kappa_SS-A.png" alt="SS-A kappa sensitivity"><img src="exp9_kappa_SS-B.png" alt="SS-B kappa sensitivity"><img src="exp9_kappa_SS-I.png" alt="SS-I kappa sensitivity"><img src="exp9_kappa_SS-O.png" alt="SS-O kappa sensitivity"><img src="exp9_kappa_Apache_AllMeasurements.png" alt="Apache_AllMeasurements kappa sensitivity"><img src="exp9_kappa_X264_AllMeasurements.png" alt="X264_AllMeasurements kappa sensitivity"><img src="exp9_kappa_SQL_AllMeasurements.png" alt="SQL_AllMeasurements kappa sensitivity"><img src="exp9_kappa_HSMGP_num.png" alt="HSMGP_num kappa sensitivity"></div>
+
+<div class="win-box">
+<b>Sensitivity headline (N=30).</b>
+Mean d2h across datasets varies from <b>0.0507</b> at κ=0.25 to
+<b>0.0552</b> at κ=1.0 — a range of
+<b>0.0045</b>. Default κ=0.15 yields 0.0527.
+See the per-budget paired-Wilcoxon table above for which κ values differ
+significantly from the default.
+</div>
+
+<h2>7. Discussion</h2>
+<p>
+The table and curves answer the three Exp-9 follow-up possibilities directly. If most
+κ rows in section 3 cluster within ~0.005 d2h and section 4 shows no κ significantly
+distinguishable from the default, the β-controller's headroom is small even with
+optimal κ — the Exp-9 conclusion (controller adds nothing) is robust.
+If instead some non-default κ shows a clear win (large range in section 3, low p
+in section 4), the Exp-9 result was κ-limited and the controller has genuine
+value at the right setting. Per-dataset variation in the best κ (visible in
+section 2) speaks to possibility 3.
+</p>
+
+</body></html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Exp 9c: Negative screen of κ-bounds and surrogate alternatives</title>
+<style>
+body { font-family: Georgia, serif; max-width: 1050px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+h1,h2,h3 { color: #2c3e50; }
+table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 0.88em; }
+th,td { border: 1px solid #ccc; padding: 6px 9px; text-align: center; vertical-align: top; }
+th { background: #2c3e50; color: white; }
+td.varname { text-align: left; font-family: monospace; }
+code { background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-size: 0.88em; }
+.box { background: #eef6fb; border-left: 4px solid #3498db; padding: 12px 16px; margin: 16px 0; }
+.amber-box { background: #fef9e7; border-left: 4px solid #d4a017; padding: 12px 16px; margin: 16px 0; }
+.stop-box { background: #f8d7da; border-left: 4px solid #c0392b; padding: 12px 16px; margin: 16px 0; }
+.muted { color: #777; font-size: 0.9em; }
+td.best { background: #d4edda; font-weight: bold; }
+td.worst { background: #f8d7da; }
+</style></head><body>
+
+<h1>Experiment 9c: Screen — κ-bounds and surrogate alternatives</h1>
+<p class="muted">Date: 2026-05-25 · 4 datasets × 20 repeats · budget N=30 ·
+<a href="exp9_kappa_sweep.html">↩ Exp 9b (κ-sensitivity sweep)</a> ·
+<a href="exp10_wide.html">↩ Exp 10 (wide replication)</a> ·
+<a href="../index.html">↑ index</a></p>
+
+<h2>1. Two follow-up directions screened</h2>
+<p>Exp 9b found the SMAS β-controller is architecturally capped — <code>κ_eff ∈ (0, κ_base)</code>
+can't reach the high-exploration regimes some datasets seemingly prefer.
+Exp 10 found INGS ≥ SMAS at scale. Two natural follow-ups:</p>
+<ol>
+<li><b>Lower / upper κ bounds.</b> Replace <code>κ_eff = κ_base · sigmoid(z(β))</code>
+with <code>κ_eff = κ_lo + (κ_hi − κ_lo) · sigmoid(z(β))</code>. If the controller
+was held back by the cap, a wider range should let it pick up oracle-tuned per-dataset
+headroom we saw in Exp 9b.</li>
+<li><b>Surrogate alternatives.</b> Replace the linear-kernel RBF with simpler/different
+predictors (linear regression, k-NN, random forest, GP-Matern). RBF was chosen
+heuristically in Exp 9 — better alternatives could exist.</li>
+</ol>
+
+<div class="box">
+<b>Screen design.</b> 4 datasets covering distinct regimes
+(<code>X264</code> — smoothness-friendly; <code>SS-A</code> — small/low-dim;
+<code>SS-W</code> — large pool / TPE wins; <code>SQL</code> — high-dim / TPE wins);
+20 repeats; budget=50; report win@N=30. Reference numbers below are
+from Exp 10's 50-repeat run on the same datasets (tighter than re-running).
+</div>
+
+<h2>2. Reference (Exp 10, 50 reps)</h2>
+<table>
+<tr><th>method</th><th>X264_AllMeasurements</th><th>SS-A</th><th>SS-W</th><th>SQL_AllMeasurements</th><th>mean</th></tr>
+<tr><td class='varname'>ings</td><td>99.4</td><td>79.2</td><td>60.2</td><td>62.6</td><td><b>75.4</b></td></tr><tr><td class='varname'>smas</td><td>98.7</td><td>81.7</td><td>57.9</td><td>63.4</td><td><b>75.4</b></td></tr><tr><td class='varname'>greedy</td><td>87.9</td><td>73.2</td><td>63.3</td><td>67.5</td><td><b>73.0</b></td></tr><tr><td class='varname'>tpe</td><td>97.9</td><td>45.0</td><td>54.6</td><td>71.0</td><td><b>67.1</b></td></tr><tr><td class='varname'>random</td><td>97.2</td><td>77.4</td><td>48.7</td><td>67.7</td><td><b>72.7</b></td></tr>
+</table>
+
+<h2>3. Direction 1 — κ bounds for SMAS</h2>
+<p>Variants: <code>smas(κ_lo, κ_hi)</code>. <code>ings(κ=0.15)</code> is the fixed-κ
+baseline; <code>smas(0, 0.15)</code> is the current SMAS default.</p>
+<table>
+<tr><th>variant</th><th>X264_AllMeasurements</th><th>SS-A</th><th>SS-W</th><th>SQL_AllMeasurements</th><th>mean</th></tr>
+<tr><td class='varname'>ings(κ=0.15)</td><td>95.2</td><td>76.0</td><td>59.9</td><td>68.2</td><td class="best">74.8</td></tr><tr><td class='varname'>smas(0, 0.15)</td><td>99.4</td><td>83.0</td><td>55.9</td><td>60.8</td><td>74.8</td></tr><tr><td class='varname'>smas(0, 1.0)</td><td>99.5</td><td>78.0</td><td>54.5</td><td>61.4</td><td>73.3</td></tr><tr><td class='varname'>smas(0, 2.0)</td><td>99.2</td><td>64.1</td><td>54.3</td><td>60.2</td><td class="worst">69.4</td></tr><tr><td class='varname'>smas(0.05, 1.0)</td><td>99.5</td><td>74.9</td><td>56.4</td><td>63.8</td><td>73.7</td></tr><tr><td class='varname'>smas(0.1, 0.5)</td><td>99.6</td><td>74.8</td><td>60.9</td><td>58.1</td><td>73.4</td></tr>
+</table>
+<div class="stop-box">
+<b>Result: widening κ hurts monotonically.</b> Best variant: <code>ings(κ=0.15)</code>
+(74.8). Worst: <code>smas(0, 2.0)</code> (69.4).
+The architectural-cap hypothesis from Exp 9b — that the controller would help with
+more κ headroom — is <b>refuted by direct test</b>. The β signal driving
+<code>sigmoid(z(β))</code> is too noisy to make sensible cross-step explore/exploit
+decisions; giving it more range just lets it overshoot. <b>Direction abandoned.</b>
+</div>
+
+<h2>4. Direction 2 — Surrogate swap (anti-Laplacian + UCB unchanged, κ=0.15 fixed)</h2>
+<table>
+<tr><th>surrogate</th><th>X264_AllMeasurements</th><th>SS-A</th><th>SS-W</th><th>SQL_AllMeasurements</th><th>mean</th></tr>
+<tr><td class='varname'>rbf_linear (INGS)</td><td>99.1</td><td>84.2</td><td>58.0</td><td>71.7</td><td class="best">78.2</td></tr><tr><td class='varname'>linear</td><td>100.0</td><td>77.1</td><td>59.0</td><td>64.4</td><td>75.1</td></tr><tr><td class='varname'>knn3</td><td>97.6</td><td>66.4</td><td>50.7</td><td>65.2</td><td>70.0</td></tr><tr><td class='varname'>knn5</td><td>97.8</td><td>70.7</td><td>50.4</td><td>68.0</td><td>71.7</td></tr><tr><td class='varname'>rf20</td><td>99.8</td><td>84.3</td><td>53.2</td><td>63.9</td><td>75.3</td></tr><tr><td class='varname'>gp_matern</td><td>98.5</td><td>69.6</td><td>47.0</td><td>63.5</td><td class="worst">69.7</td></tr>
+</table>
+<div class="stop-box">
+<b>Result: RBF/linear is the best surrogate.</b> Best: <code>rbf_linear (INGS)</code>
+(78.2). Worst: <code>gp_matern</code> (69.7).
+RBF wins decisively on SQL (high-dim, where parametric methods underfit with ~50
+observations). Linear regression is a near-tie on X264 / SS-W but loses on SS-A / SQL.
+Random Forest is competitive but consistently a hair worse. <b>Most surprising:
+Gaussian Process is the <i>worst</i></b> — Matern + auto-tuned length-scale can't get
+good fits with ~50 observations in these dimensions. <b>Direction abandoned.</b>
+</div>
+
+<h2>5. Why RBF/linear is hard to beat</h2>
+<p>
+The "linear" kernel RBF (<code>φ(r) = r</code>) is not dimensional regression — it's
+inverse-distance-weighted interpolation through observed points. That degrades
+gracefully in high-dim (SQL 39d) where parametric methods try to fit a global
+structure that doesn't exist with 50 points. It's a robust default precisely
+<i>because</i> it doesn't model — it just smooths between known values.
+</p>
+
+<h2>6. What this leaves open</h2>
+<p class="muted">Not pursued further on this thread, but if the smoothness-aware
+optimization is ever picked back up these are the next things I'd try:</p>
+<ul>
+<li><b>Better anti-Laplacian.</b> The current one-sided form
+(<code>2·u(h) − u(nearest_revealed)</code>) is approximate. Try k-nearest revealed
+neighbors averaged, or restrict invocation to candidates where the surrogate is
+confident.</li>
+<li><b>Portfolio with TPE.</b> TPE wins on high-dim/large-pool; INGS on smooth/small.
+A trivial portfolio that runs both and picks-by-validation could plausibly beat both.</li>
+<li><b>Adaptive surrogate choice.</b> Fit RBF + linear + RF each step and pick by
+leave-one-out CV on the observed set.</li>
+</ul>
+
+</body></html>
