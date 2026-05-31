@@ -240,6 +240,20 @@ def gen_report(payload, runtime):
     head = "".join(f"<th>{METHOD_LABELS[m]}</th>" for m in METHOD_ORDER)
     per_ds_table = (f"<table><tr><th>Dataset</th><th>pool×dim</th>{head}</tr>{rows}</table>")
 
+    # INGS-only mean win across all budgets (one row per dataset).
+    ings_rows = ""
+    for ds in ds_list:
+        cells = ""
+        for b in budgets:
+            v = [w for w in win_at("ings", b, ds) if not np.isnan(w)]
+            cells += f"<td>{np.mean(v):.1f}</td>" if v else "<td>NaN</td>"
+        ings_rows += (f"<tr><td class='dsname'>{ds}</td>"
+                      f"<td class='muted'>{meta[ds]['pool']}×{meta[ds]['dim']}</td>{cells}</tr>")
+    ings_budget_table = (
+        "<table><tr><th>Dataset</th><th>pool×dim</th>"
+        + "".join(f"<th>N={b}</th>" for b in budgets)
+        + f"</tr>{ings_rows}</table>")
+
     # Aggregate per method × budget.
     agg = ""
     for m in METHOD_ORDER:
@@ -339,7 +353,11 @@ the power to confirm a real, consistent ~2–5 win-point advantage.
 <span class="cap">(pool&lt;200)</span> marks datasets whose top budgets are capped.</p>
 {per_ds_table}
 
-<h2>5. Discussion</h2>
+<h2>5. INGS win score across budgets</h2>
+<p>INGS mean win over {payload['n_repeats']} repeats at each budget (one row per dataset).</p>
+{ings_budget_table}
+
+<h2>6. Discussion</h2>
 <p>
 <b>The smoothness-aware optimizer is the method to use for SE config tuning.</b> Across
 {len(ds_list)} MOOT tasks and budgets 25–200, INGS (RBF surrogate + anti-Laplacian + UCB)
