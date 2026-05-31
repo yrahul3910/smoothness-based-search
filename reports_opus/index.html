@@ -145,13 +145,21 @@ Methods set shrinks vs Round 2 because evaluating d2h IS the legitimate objectiv
   <td>The Exp 9 result <i>moderates</i> with wider coverage. INGS/SMAS still beat the no-smoothness Greedy ablation cleanly. Mean win@N=30: INGS 85.1, SMAS 83.7, TPE 77.8, Random 78.6, Greedy 76.7. But per-dataset W/T/L is near-even (SMAS vs TPE 11W/7T/10L; INGS vs TPE 14W/5T/9L). Only INGS reaches paired-Wilcoxon significance vs TPE, at N=20 (p=0.029). The "SMAS beats TPE 5W/1T/2L" headline from Exp 9 was driven by a favorable 8-dataset subset.</td>
   <td class="reps">50</td><td>28 (24 SS + 3 config + 1 HPO)</td>
 </tr>
+<tr>
+  <td class="num"><a href="config/exp11_budget.html">11</a></td>
+  <td>Budget sweep N=25/50/100/200 over the FULL matched MOOT set (105 datasets incl. the large pools held back from Exp 10). Methods: INGS, Greedy, TPE, Random (SMAS dropped). ~8.4h overnight; per-repeat raw d2h + win scores stored.</td>
+  <td><b>The TPE-beating claim becomes statistically clear at scale.</b> Across 103 finite-win datasets, INGS &gt; TPE by paired Wilcoxon at <i>every</i> budget (p = 0.0000 / 0.0001 / 0.0011 / 0.031 at N=25/50/100/200), and INGS &gt; Greedy at every budget. Mean win@N=50: INGS 83.0, TPE 78.6, Greedy 77.2, Random 73.3. The edge is largest at low budget (Δ≈+5 at N=25) and shrinks as budget grows (Δ≈+0.7 at N=200) — a good prior matters most when evaluations are scarce.</td>
+  <td class="reps">20</td><td>105 (full matched set)</td>
+</tr>
 </table>
-<p class="bottom-line"><b>Bottom line (updated by Exp 10):</b> The smoothness signal is real
-— INGS/SMAS comfortably beat the no-smoothness Greedy ablation everywhere. The
-TPE-beating claim from Exp 9 weakens to "competitive with, not dominant over" on the
-wider 28-dataset set; INGS is the only method reaching significance vs TPE (at N=20).
-TPE tends to win on the largest pools and highest dimensions (SS-X, SS-W, SQL, Health),
-where the RBF surrogate over only 50 observations can't model the response surface well.</p>
+<p class="bottom-line"><b>Bottom line (settled by Exp 11):</b> On the full 105-task MOOT set,
+the smoothness-aware optimizer <b>INGS</b> (RBF + anti-Laplacian + UCB) significantly beats
+both TPE and the no-smoothness Greedy ablation at every budget from 25 to 200. Exp 9's
+8-dataset "beats TPE" was a favorable-subset artifact and Exp 10's 28-dataset result looked
+near-even, but the full sweep shows the advantage is real and consistent — it just needed a
+large dataset sample for the paired test to detect a modest (~2–5 win-point) effect. The
+practical takeaway: use INGS when the evaluation budget is small, which is the SE-config
+regime that matters. SMAS's β-controller never earned its complexity and was dropped.</p>
 </div>
 
 </body></html>
