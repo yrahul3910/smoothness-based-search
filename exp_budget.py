@@ -249,6 +249,11 @@ def gen_report(payload, runtime):
             cells += f"<td>{np.mean(v):.1f}</td>" if v else "<td>NaN</td>"
         ings_rows += (f"<tr><td class='dsname'>{ds}</td>"
                       f"<td class='muted'>{meta[ds]['pool']}×{meta[ds]['dim']}</td>{cells}</tr>")
+    # Mean across datasets per budget (excludes degenerate-NaN datasets).
+    ings_mean_cells = "".join(f"<td><b>{mean_win('ings', b):.1f}</b></td>" for b in budgets)
+    ings_rows += (f"<tr style='border-top:2px solid #2c3e50'>"
+                  f"<td class='dsname'>Mean across datasets</td>"
+                  f"<td class='muted'>—</td>{ings_mean_cells}</tr>")
     ings_budget_table = (
         "<table><tr><th>Dataset</th><th>pool×dim</th>"
         + "".join(f"<th>N={b}</th>" for b in budgets)
